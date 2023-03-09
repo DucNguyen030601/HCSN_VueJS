@@ -1,26 +1,42 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <the-sidebar-vue  />
+  <the-header-vue  />
+  <the-content-vue />
+
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
-
+import TheContentVue from "./layout/TheContent.vue";
+import TheHeaderVue from "./layout/TheHeader.vue";
+import TheSidebarVue from "./layout/TheSidebar.vue";
 export default {
-  name: 'App',
+  name: "App",
   components: {
-    HelloWorld
-  }
-}
-</script>
+    TheContentVue,
+    TheHeaderVue,
+    TheSidebarVue,
+  },
+  data() {
+    return {
+      isShowForm: true
 
+    };
+  },
+  methods: {
+    /**
+     * Date:1/3/2023
+     * Author: Nguyễn Ngọc Đức
+     * Hàm trạng thái đóng mở sidebar
+     */
+    
+  },
+};
+</script>
 <style>
+@import url(./css/layout/main.css);
+
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  display: grid;
+  grid-template-columns: auto 1fr;
 }
 </style>

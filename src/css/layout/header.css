@@ -1,0 +1,47 @@
+.header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+ .header__filter-feature{
+    display: flex;
+    column-gap: 31px;
+
+}
+.header__filter{
+    align-items: center;
+    display: flex;
+    column-gap: 26px;
+    position: relative;
+}
+.header__feature{
+    display: flex;
+    align-items: center;
+    column-gap: 24px;
+}
+.header__feature .feature__user{
+    display: flex;
+    align-items: center;
+    column-gap: 10px;
+}
+.header__filter .txt-box--number{
+ 
+    width: 112px;
+    height: 30px;
+    
+}
+.header__filter .txt-box--number input{
+    background-color: rgba(26, 164, 200, .2);
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.header__filter span::after{
+    content: "Năm";
+    position: absolute;
+    left: 55%;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    z-index: 1;
+}
