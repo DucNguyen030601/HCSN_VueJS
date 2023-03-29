@@ -63,7 +63,7 @@ export default {
           MenuItem: [],
           Tooltip: "",
           Icon:"icon-bus",
-          Link:'/property'
+          Link:'/fixedasset'
         },
         {
           Title: "Tài sản HT-ĐB",

@@ -21,6 +21,7 @@
 
 .dropdown__menu {
     display: flex;
+    flex-direction: column;
     height: 180px;
     top: 100%;
     left: 0;
@@ -44,11 +45,11 @@
     display: flex;
     border-radius: 4px;
     cursor: pointer;
+    margin-bottom:3px;
 }
 .dropdown__menu--nc .menu__item{
     padding: 8px;
 }
-
 
 .dropdown__menu .menu__item:hover{
     background-color: rgba(26, 164, 200, .2);

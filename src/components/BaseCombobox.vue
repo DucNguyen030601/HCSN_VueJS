@@ -21,7 +21,11 @@
       <div class="icon-dr-up" @click="stateMenu" v-if="typeUp"></div>
       <div class="icon-filter" v-if="filter"></div>
     </div>
-    <div class="dropdown__menu" v-show="isShowMenu" :class="{'dropdown__menu--nc':!checkActive}" >
+    <div
+      class="dropdown__menu"
+      v-show="isShowMenu"
+      :class="{ 'dropdown__menu--nc': !checkActive }"
+    >
       <template v-for="(item, index) in model" :key="index">
         <div
           class="menu__item"
@@ -30,6 +34,7 @@
             'active-check': index == activeCheck && checkActive,
           }"
           @click="getValue(item)"
+          ref="menuItem"
         >
           {{ get ? item[get] : item }}
         </div>
@@ -45,7 +50,7 @@ export default {
     modelValue: String,
     filter: Boolean,
     typeUp: Boolean,
-    checkActive:Boolean,
+    checkActive: Boolean,
     lable: String,
     placehoder: String,
     require: Boolean,
@@ -54,6 +59,11 @@ export default {
     arrData: Array,
     get: [Array, String],
     send: [Array, String],
+  },
+  watch: {
+    modelValue: function (nVal) {
+      this.value = nVal;
+    },
   },
   created() {
     this.value = this.modelValue;
@@ -65,10 +75,9 @@ export default {
           this.EX_MODEL = data; //dữ liệu gốc
           this.model = data;
         });
-    }
-    else if(this.arrData){
-        this.EX_MODEL = this.arrData; //dữ liệu gốc
-        this.model = this.arrData;
+    } else if (this.arrData) {
+      this.EX_MODEL = this.arrData; //dữ liệu gốc
+      this.model = this.arrData;
     }
   },
   methods: {
@@ -97,7 +106,7 @@ export default {
       this.activeCheck = -1;
       this.model = this.EX_MODEL;
       for (const key in this.model) {
-        let val = this.get?this.model[key][this.get]:this.model[key];
+        let val = this.get ? this.model[key][this.get] : this.model[key];
         if (val == this.value) {
           this.active = key;
           this.activeCheck = key;
@@ -110,10 +119,22 @@ export default {
      * @param {*} getItem  gía trị muốn lấy
      */
     getValue: function (getItem) {
-      this.value = this.get ? getItem[this.get] : getItem;
-      this.isShowMenu = false;
-      this.$emit("update:modelValue", this.value);
-      if (this.send) this.$emit(`update:${this.send}`, getItem[this.send]);
+      if (!getItem) {
+        if (this.send) {
+          this.send.forEach((element) => {
+            this.$emit(`update:${element}`, this.value);
+          });
+        }
+      } else {
+        this.value = this.get ? getItem[this.get] : getItem;
+        if (this.send) {
+          this.send.forEach((element) => {
+            this.$emit(`update:${element}`, getItem[element]);
+          });
+        }
+      }
+        this.isShowMenu = false;
+        this.$emit("update:modelValue", this.value);
     },
 
     /**
@@ -153,6 +174,10 @@ export default {
     stateSearchInput: function () {
       const get = this.get;
       const val = this.value;
+      if(!val) {
+         this.active = -1;
+        this.activeCheck = -1;
+      }
       this.model = this.EX_MODEL.filter(function (item) {
         return item[get].includes(val);
       });

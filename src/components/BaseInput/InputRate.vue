@@ -2,23 +2,28 @@
   <label for="" v-if="lable"
     >{{ lable }} <span style="color: red" v-if="require">*</span></label
   >
-  <input
-    type="number"
-    class="txt-box txt-box-al--r txt-box--number-nb"
-    v-model.trim="value"
-    :class="{ 'input-err': isValid, 'txt-box--disable': disable }"
-    @blur="onBlurInputValidate"
-    :disabled="disable"
-    @keypress="onlyNumberKey($event)"
-  />
+  <div class="txt-box--number">
+    <input
+      class="txt-box txt-box-al--r"
+      type="number"
+      v-model.trim="value"
+      :class="{ 'input-err': isValid, 'txt-box--disable': disable }"
+      @blur="onBlurInputValidate"
+      :disabled="disable"
+      min="0"
+      max="10"
+      step="0.1"
+    />
+    <div class="icon-ip-number"></div>
+  </div>
   <div class="txt--error" style="color: red" v-if="isValid">{{ txtValid }}</div>
 </template>
 
 <script>
 export default {
-  name: "InputNumber",
+  name: "InputRate",
   props: {
-    modelValue: String,
+    modelValue: Number,
     typeInput: String,
     lable: String,
     placehoder: String,
@@ -33,14 +38,15 @@ export default {
     };
   },
   created() {
-        this.value = this.modelValue;
+    this.value = (this.modelValue * 100).toFixed(2);
   },
   watch: {
     value: function (nVal) {
-      this.$emit("update:modelValue", nVal);
+      this.$emit("update:modelValue", this.setFormatValue(nVal));
     },
     modelValue: function (nVal) {
-      this.value = nVal;
+      //this.value = this.setFormatValue(nVal);
+      this.value =  (nVal * 100).toFixed(2);
     },
   },
   methods: {
@@ -59,6 +65,9 @@ export default {
       } else {
         return true;
       }
+    },
+    setFormatValue: function (value) {
+      return parseFloat((value / 100).toFixed(4));
     },
   },
 };

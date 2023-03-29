@@ -33,17 +33,18 @@ export default {
     };
   },
   created() {
-    this.value = this.modelValue;this.MISACommon.formatMoney(this.modelValue)
+    // this.value = this.modelValue;
+    this.value = this.MISACommon.formatMoney(this.modelValue);
   },
-    watch: {
-      value: function (nVal) {
-        const money =  this.MISACommon.convertMoneyToNum(nVal);
-        this.$emit("update:modelValue", money);
-      },
-      modelValue:function(nVal){
-       this.value = this.MISACommon.formatMoney(nVal);
-      }
+  watch: {
+    value: function (nVal) {
+      const money = this.MISACommon.convertMoneyToNum(nVal);
+      this.$emit("update:modelValue", money);
     },
+    modelValue: function (nVal) {
+      this.value = this.MISACommon.formatMoney(nVal);
+    },
+  },
   methods: {
     onBlurInputValidate: function () {
       if ((this.value === "" || this.value == null) && this.require) {

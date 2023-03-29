@@ -4,18 +4,17 @@
       <div class="popup-form__header">
         <h2>{{ title }}</h2>
         <div class="header__close" style="cursor: pointer" @click="closeForm">
-           <div class="tooltip" >
-              <div class="icon-close-popup"></div>
-              <span class="tooltip__text">Đóng</span>
-            </div>
-
+          <div class="tooltip">
+            <div class="icon-close-popup"></div>
+            <span class="tooltip__text">Đóng</span>
+          </div>
         </div>
       </div>
 
       <div class="popup-form__grid">
         <div class="grid__item">
           <input-text-vue
-            v-model="model.EmployeeCode"
+            v-model="model.fixed_asset_code"
             lable="Mã tài sản"
             :require="true"
             placehoder="Nhập mã tài sản"
@@ -24,7 +23,7 @@
 
         <div class="grid__item">
           <input-text-vue
-            v-model="model.FullName"
+            v-model="model.fixed_asset_name"
             lable="Tên tài sản"
             :require="true"
             placehoder="Nhập tên tài sản"
@@ -32,20 +31,21 @@
         </div>
         <div class="grid__item">
           <base-combobox-vue
-            lable="Mã loại tài sản"
+            lable="Mã bộ phận sử dụng"
             placehoder="Chọn mã bộ phận sử dụng"
             :require="true"
             :checkActive="true"
-            :api="MISAResoure.API.Pos.Get"
-            get="PositionCode"
-            send="PositionName"
-            v-model="model.PositionCode"
-            v-model:PositionName="model.PositionName"
+            :api="MISAResoure.API.Dept.Get"
+            get="department_code"
+            :send="['department_id', 'department_name']"
+            v-model="model.department_code"
+            v-model:department_name="model.department_name"
+            v-model:department_id="model.department_id"
           />
         </div>
         <div class="grid__item">
-           <input-text-vue
-            v-model="model.PositionName"
+          <input-text-vue
+            v-model="model.department_name"
             lable="Tên bộ phận sử dụng"
             :disable="true"
           />
@@ -56,16 +56,24 @@
             placehoder="Chọn mã loại tài sản"
             :require="true"
             :checkActive="true"
-            :api="MISAResoure.API.Dept.Get"
-            get="DepartmentCode"
-            send="DepartmentName"
-            v-model="model.DepartmentCode"
-            v-model:DepartmentName="model.DepartmentName"
+            :api="MISAResoure.API.Cat.Get"
+            get="fixed_asset_category_code"
+            :send="[
+              'fixed_asset_category_id',
+              'fixed_asset_category_name',
+              'life_time',
+              'depreciation_rate',
+            ]"
+            v-model="model.fixed_asset_category_code"
+            v-model:fixed_asset_category_id="model.fixed_asset_category_id"
+            v-model:fixed_asset_category_name="model.fixed_asset_category_name"
+            v-model:life_time="model.life_time"
+            v-model:depreciation_rate="model.depreciation_rate"
           />
         </div>
         <div class="grid__item">
-             <input-text-vue
-            v-model="model.DepartmentName"
+          <input-text-vue
+            v-model="model.fixed_asset_category_name"
             lable="Tên tài loại tài sản"
             :disable="true"
           />
@@ -73,7 +81,7 @@
         <div class="grid__item">
           <input-mount-vue
             lable="Số lượng"
-            v-model="model.EducationalBackground"
+            v-model="model.quantity"
             :require="true"
           />
         </div>
@@ -81,49 +89,49 @@
         <div class="grid__item">
           <input-money-vue
             lable="Nguyên giá"
-            v-model="model.OriginalPrice"
+            v-model="model.cost"
             :require="true"
           />
         </div>
         <div class="grid__item">
           <input-number-vue
             lable="Số năm sử dụng"
-            v-model="model.NumberOfYear"
+            v-model="model.life_time"
             :require="true"
           />
         </div>
         <div class="grid__item">
-          <input-mount-vue
+          <input-rate-vue
             lable="Tỷ lệ hao mòn (%)"
-            v-model="model.WearRate"
-            :require="true"
+            v-model="model.depreciation_rate"
+            :disable="true"
           />
         </div>
         <div class="grid__item">
           <input-money-vue
             lable="Giá trị hao mòn năm"
-            v-model="model.DepreciationYear"
-            :require="true"
+            :disable="true"
+            v-model="depreciation_cost"
           />
         </div>
         <div class="grid__item">
           <input-text-vue
             lable="Năm theo dõi"
-            v-model="model.YearOfTracking"
+            v-model="model.tracked_year"
             :disable="true"
           />
         </div>
         <div class="grid__item">
           <input-date-vue
             lable="Ngày mua"
-            v-model="model.DatePurchase"
+            v-model="model.purchase_date"
             :require="true"
           />
         </div>
         <div class="grid__item">
           <input-date-vue
             lable="Ngày bắt đầu sử dụng"
-            v-model="model.DayStartedUsing"
+            v-model="model.production_year"
             :require="true"
           />
         </div>
@@ -148,16 +156,17 @@
     v-show="isShowDialog"
     @onChoose="btnOnClickChooseDialog"
   />
+  <loading-process-vue v-if="isLoadingProcess" />
 </template>
 <script>
 export default {
-  name: "PropertyDetail",
+  name: "FixedAssetDetail",
   props: {
     title: {
       type: String,
       required: true,
     },
-    employee: {
+    fixedAsset: {
       type: Object,
     },
     state: {
@@ -167,16 +176,28 @@ export default {
   },
   created() {
     //gán dữ liệu mới sang dữ liệu cũ
-    this.EX_EMPLOYEE = JSON.stringify(this.employee);
+    this.EX_FixedAsset = JSON.stringify(this.fixedAsset);
     //gán dữ liệu sang data
-    this.model = JSON.parse(this.EX_EMPLOYEE);
+    this.model = JSON.parse(this.EX_FixedAsset);
+    this.depreciation_cost = this.model.cost * this.model.depreciation_rate;
   },
   data() {
     return {
       model: null, //lưu dữ liệu mới
-      EX_EMPLOYEE: null, //lưu trữ dữ liệu cũ,
+      EX_FixedAsset: null, //lưu trữ dữ liệu cũ,
       isShowDialog: false,
+      isLoadingProcess: false,
+      depreciation_cost: Number,
     };
+  },
+  watch: {
+    "model.cost": function (nVal) {
+      this.depreciation_cost = nVal * this.model.depreciation_rate;
+    },
+    "model.life_time": function (nVal) {
+      this.model.depreciation_rate = parseFloat((1 / nVal).toFixed(4));
+      this.depreciation_cost = this.model.depreciation_rate * this.model.cost;
+    },
   },
   methods: {
     /**
@@ -184,20 +205,25 @@ export default {
      * Author NNduc (5/3/2023)
      */
     validateForm: function () {
-      if (!this.model.EmployeeCode) {
+      if (/^([A-Z]{2}[0-9]{5})$/.test(this.model.fixed_asset_code) == false) {
         this.showDialog(
-          this.MISAResoure.Dialog.Title.Validate("Mã tài sản"),
+          this.MISAResoure.Dialog.Title.Validate(
+            this.MISAResoure.Form.FixedAsset.Lable.FixedAssetCode
+          ) + this.MISAResoure.Form.FixedAsset.Validate.RegExpCodeText,
           this.MISAResoure.Dialog.Button.Close
         );
         return false;
       }
-      if (!this.model.FullName) {
+      if (!this.model.fixed_asset_name) {
         this.showDialog(
-          this.MISAResoure.Dialog.Title.Validate("Tên tài sản"),
+          this.MISAResoure.Dialog.Title.Validate(
+            this.MISAResoure.Form.FixedAsset.Lable.FixedAssetName
+          ),
           this.MISAResoure.Dialog.Button.Close
         );
         return false;
       }
+
       return true;
     },
 
@@ -207,23 +233,31 @@ export default {
      */
     closeForm: function () {
       console.log(this.model);
+      //nếu trong trạng thái sửa
       //kiểm tra hỏi có muốn thay đổi dữ liệu không? nếu có sẽ show cảnh báo
-      const NW_EMPLOYEE = JSON.stringify(this.model);
-      if (NW_EMPLOYEE != this.EX_EMPLOYEE) {
+      const NW_FixedAsset = JSON.stringify(this.model);
+      if (
+        NW_FixedAsset != this.EX_FixedAsset &&
+        this.state == this.MISAEnum.FormState.Edit
+      ) {
         //gán các thông tin vào cảnh báo
         let title = this.MISAResoure.Dialog.Title.EditWarning;
         let titleBtnPr = this.MISAResoure.Dialog.Button.Save;
         let titleBtnSub = this.MISAResoure.Dialog.Button.DoNotSave;
         let titleBtnOut = this.MISAResoure.Dialog.Button.Cancel;
         this.showDialog(title, titleBtnPr, titleBtnOut, titleBtnSub);
-      } else {
+      } else if (
+        this.state == this.MISAEnum.FormState.Add ||
+        this.state == this.MISAEnum.FormState.Clone
+      ) {
         //gán các thông tin vào cảnh báo
         let title = this.MISAResoure.Dialog.Title.Warning;
-        let titleBtnPr = this.MISAResoure.Dialog.Button.Save;
-        let titleBtnOut = this.MISAResoure.Dialog.Button.Cancel;
+        let titleBtnPr = this.MISAResoure.Dialog.Button.Cancel;
+        let titleBtnOut = this.MISAResoure.Dialog.Button.No;
         this.showDialog(title, titleBtnPr, titleBtnOut);
-      }
+      } else this.$emit("closeForm");
     },
+
     /**
      * Xử lý sự kiện click Huỷ form
      * Author: NNduc(5/3/2023)
@@ -231,6 +265,7 @@ export default {
     btnOnClickCancel: function () {
       this.closeForm();
     },
+
     /**
      * Xử lý sự kiện click Lưu form
      * Author: NNduc(5/3/2023)
@@ -239,10 +274,60 @@ export default {
       if (this.validateForm()) {
         if (this.state == this.MISAEnum.FormState.Add) {
           //Xử lý dialog form thêm
+          this.isLoadingProcess = true;
+          const api = this.MISAResoure.API.FixedAsset.Add;
+          this.axios
+            .post(api, this.model)
+            .then((response) => {
+              this.isLoadingProcess = false;
+              if (response.status == 201) {
+                this.$emit("load");
+              }
+            })
+            .catch((e) => {
+              this.isLoadingProcess = false;
+              let title = e.response.data.title;
+              let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
+              this.showDialog(title, titleBtnPr);
+            });
         } else if (this.state == this.MISAEnum.FormState.Edit) {
           //Xử lý dialog form sửa
+          this.isLoadingProcess = true;
+          const api = this.MISAResoure.API.FixedAsset.UpdateId(
+            this.model.fixed_asset_id
+          );
+          this.axios
+            .put(api, this.model)
+            .then((response) => {
+              this.isLoadingProcess = false;
+              if (response.status == 200) {
+                this.$emit("load");
+              }
+            })
+            .catch((e) => {
+              this.isLoadingProcess = false;
+              let title = e.response.data.title;
+              let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
+              this.showDialog(title, titleBtnPr);
+            });
         } else {
           //Xử lý dialog form nhân bản
+          this.isLoadingProcess = true;
+          const api = this.MISAResoure.API.FixedAsset.Add;
+          this.axios
+            .post(api, this.model)
+            .then((response) => {
+              this.isLoadingProcess = false;
+              if (response.status == 201) {
+                this.$emit("load");
+              }
+            })
+            .catch((e) => {
+              this.isLoadingProcess = false;
+              let title = e.response.data.title;
+              let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
+              this.showDialog(title, titleBtnPr);
+            });
         }
       }
     },
@@ -253,10 +338,14 @@ export default {
      * @param {*} choose  gía trị được gửi từ dialog sang
      */
     btnOnClickChooseDialog: function (choose) {
+      const NW_FixedAsset = JSON.stringify(this.model);
       if (
         choose == this.MISAResoure.Dialog.Button.Close ||
         choose == this.MISAResoure.Dialog.Button.No ||
-        choose == this.MISAResoure.Dialog.Button.Yes
+        choose == this.MISAResoure.Dialog.Button.Yes ||
+        (choose == this.MISAResoure.Dialog.Button.Cancel &&
+          this.state == this.MISAEnum.FormState.Edit &&
+          NW_FixedAsset != this.EX_FixedAsset)
       ) {
         this.isShowDialog = false;
       } else if (
@@ -264,6 +353,8 @@ export default {
         choose == this.MISAResoure.Dialog.Button.DoNotSave
       ) {
         this.$emit("closeForm");
+      } else {
+        this.btnOnClickSave();
       }
     },
 

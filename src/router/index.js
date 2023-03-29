@@ -1,19 +1,19 @@
 import { createRouter, createWebHistory } from "vue-router";
-import PropertyList from '@/views/property/PropertyList.vue'
+import FixedAssetList from '@/views/fixed-asset/FixedAssetList.vue'
 import CustomerList from '@/views/customer/CustomerList.vue'
 const router = createRouter({
     history: createWebHistory(),
     routes: [
         {
             path: '/',
-            component:PropertyList
+            component:FixedAssetList
         },
         {
-            path: '/property',
-            component:PropertyList
+            path: '/fixedasset',
+            component:FixedAssetList
         },
         {
-            path: '/customer',
+            path: '/fixedasset',
             component:CustomerList
         }
     ]

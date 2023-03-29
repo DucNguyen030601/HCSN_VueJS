@@ -10,7 +10,6 @@
       :class="{ 'input-err': isValid, 'txt-box--disable': disable }"
       @blur="onBlurInputValidate"
       :disabled="disable"
-      @input="setFormatValue($event.target.value)"
       min="1"
       max="100"
     />
@@ -39,13 +38,16 @@ export default {
   },
   created() {
     this.value = this.setFormatValue(this.modelValue);
+    //this.value = this.modelValue;
   },
   watch: {
     value: function (nVal) {
       this.$emit("update:modelValue", parseInt(nVal));
+      // this.$emit("update:modelValue", nVal);
     },
     modelValue: function (nVal) {
       this.value = this.setFormatValue(nVal);
+      // this.value = nVal;
     },
   },
   methods: {
