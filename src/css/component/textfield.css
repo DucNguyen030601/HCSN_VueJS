@@ -3,12 +3,19 @@
     border-radius: 2.5px;
     border: 1px solid #afafaf;
     padding: 11px 12px;
-    outline-color: #22a7ca;
+    outline: unset;
+}
+.txt-box:hover,.txt-box:focus{
+    border:1px solid #22a7ca;
+}
+.txt-box:active{
+    border: 1px solid #afafaf;
 }
 
 .txt-box::placeholder {
     font-style: italic;
 }
+
 
 .txt-box--filter {
     position: relative;
@@ -70,7 +77,12 @@ input[type="checkbox"]{
     width: 14px;
     cursor: pointer;
     appearance: none;
+    outline: none;
 }
+input[type="checkbox"]:hover{
+    outline: 5px solid #d1edf4;
+}
+
 input[type="checkbox"]:after{
     background: url('../../assets/icon/qlts-icon.png') no-repeat -113px -377px;
     width: 14px;
@@ -80,7 +92,7 @@ input[type="checkbox"]:after{
 
 }
 input[type="checkbox"]:checked::after {
-    background: url("../../assets/icon/qlts-icon.png") no-repeat -157px -377px;
+    background: url("../../assets/icon/All-icon.svg") no-repeat -25px -201px;
     width: 14px;
     height: 14px;
     content: "";
@@ -108,3 +120,44 @@ input[type="checkbox"]:checked::after {
     transform: scale(1.2);
     cursor: pointer;
 }
+
+.txt-box--date-custom {
+    height: 36px;
+    position: relative;
+  }
+  
+  .txt-box--date-custom input:first-child {
+    height: 100%;
+    width: 100%;
+  }
+  
+  
+  .txt-box--date-custom input:last-child {
+    height: 17px;
+    width: 17px;
+    border: unset;
+    outline: unset;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: 12px;
+    background-color: transparent;
+  }
+  
+  .txt-box--date-custom input:last-child::-webkit-calendar-picker-indicator {
+    z-index: 1;
+    opacity: 0;
+    transform: scale(1.5);
+    cursor: pointer;
+  }
+  
+  .txt-box--date-custom .icon-date {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 0;
+    right: 12px;
+  }
+  .txt--error {
+    font-size: 13px;
+  }

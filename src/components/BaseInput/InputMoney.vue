@@ -1,17 +1,24 @@
 <template>
-  <label for="" v-if="lable"
+  <label for="" v-if="lable && hasLable"
     >{{ lable }} <span style="color: red" v-if="require">*</span></label
   >
   <input
     type="text"
     class="txt-box txt-box-al--r txt-box--number-nb"
     v-model="value"
-    :class="{ 'input-err': isValid, 'txt-box--disable': disable }"
+    :class="{
+      'input-err': isValid,
+      'txt-box--disable': disable,
+      'placehoder-normal': stylePlacehoder == 'normal',
+    }"
     @blur="onBlurInputValidate"
     :disabled="disable"
     @keypress="onlyNumberKey($event)"
+    @input="sendValue($event.target.value)"
+    ref="input"
+    @focus="onFocusInputListener"
   />
-  <div class="txt--error" style="color: red" v-if="isValid">{{ txtValid }}</div>
+  <div class="txt--error" style="color: red" v-if="isValid && txtValid!=''">{{ txtValid }}</div>
 </template>
 
 <script>
@@ -21,9 +28,15 @@ export default {
     modelValue: Number,
     typeInput: String,
     lable: String,
+    hasLable: {
+      type: Boolean,
+      default: true,
+    },
     placehoder: String,
+    stylePlacehoder:String,
     require: Boolean,
     disable: Boolean,
+    name: Object,
   },
   data() {
     return {
@@ -37,20 +50,42 @@ export default {
     this.value = this.MISACommon.formatMoney(this.modelValue);
   },
   watch: {
-    value: function (nVal) {
-      const money = this.MISACommon.convertMoneyToNum(nVal);
-      this.$emit("update:modelValue", money);
-    },
+    // value: function (nVal) {
+    //   const money =
+    //     nVal == "" || isNaN(nVal)
+    //       ? NaN
+    //       : this.MISACommon.convertMoneyToNum(nVal);
+    //   this.$emit("update:modelValue", money);
+    // },
     modelValue: function (nVal) {
       this.value = this.MISACommon.formatMoney(nVal);
     },
   },
   methods: {
+    /**
+     * @description: Sự kiện focus để lấy name chuyển sang component cha
+     * @param: {any}
+     * Author: NNduc (21/04/2023)
+     */
+    onFocusInputListener: function () {
+      this.$emit("onFocusInputListener", this.name);
+    },
+
+    sendValue: function (nVal) {
+      const money =
+        nVal == "" || isNaN(this.MISACommon.convertMoneyToNum(nVal))
+          ? NaN
+          : this.MISACommon.convertMoneyToNum(nVal);
+      this.$emit("update:modelValue", money);
+    },
     onBlurInputValidate: function () {
       if ((this.value === "" || this.value == null) && this.require) {
         this.isValid = true;
-        this.txtValid = this.lable + " không được để trống";
-      } else this.isValid = false;
+        this.txtValid = this.MISAResoure.Validate.Required(this.lable);
+      } else {
+        this.isValid = false
+        this.txtValid='';
+        }
     },
     onlyNumberKey: function (evt) {
       // Only ASCII character in that range allowed
@@ -62,10 +97,32 @@ export default {
         return true;
       }
     },
+    /**
+     * @description: Focus cho input
+     * @param: {any}
+     * Author: NNduc (11/04/2023)
+     */
+    autoFocusComplete: function () {
+      this.$refs.input.focus();
+    },
+    
+    /**
+     * @description: Hiện cảnh báo và hiện text khi người dùng sai thông tin
+     * @param: {any}
+     * Author: NNduc (29/04/2023)
+     */
+    showTextValidate(){
+        this.$refs.input.blur();
+      this.isValid = true;
+      //this.txtValid = s;
+    },
   },
 };
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.input-err {
+  border: 1px solid red;
+}
 </style>

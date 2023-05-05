@@ -10,12 +10,13 @@
       :class="{ 'input-err': isValid, 'txt-box--disable': disable }"
       @blur="onBlurInputValidate"
       :disabled="disable"
-      min="1"
-      max="100"
+      min="0"
+      ref="input"
+      @focus="onFocusInputListener"
     />
     <div class="icon-ip-number"></div>
   </div>
-  <div class="txt--error" style="color: red" v-if="isValid">{{ txtValid }}</div>
+  <div class="txt--error" style="color: red" v-if="isValid && txtValid!=''">{{ txtValid }}</div>
 </template>
 
 <script>
@@ -28,6 +29,7 @@ export default {
     placehoder: String,
     require: Boolean,
     disable: Boolean,
+    name:Object
   },
   data() {
     return {
@@ -51,11 +53,29 @@ export default {
     },
   },
   methods: {
+           /**
+     * @description: Sự kiện focus để lấy name chuyển sang component cha 
+     * @param: {any}
+     * Author: NNduc (21/04/2023)
+     */
+    onFocusInputListener:function(){
+      this.$emit("onFocusInputListener",this.name);
+    },
+
+    /**
+     * @description: Sự kiện khi onblur
+     * @param: {any}
+     * Author: NNduc (06/04/2023)
+     */
     onBlurInputValidate: function () {
-      if ((this.value === "" || this.value == null) && this.require) {
+      if ((this.value === "" || this.value == null || isNaN(this.value)) && this.require) {
         this.isValid = true;
-        this.txtValid = this.lable + " không được để trống";
-      } else this.isValid = false;
+        this.txtValid =
+          this.MISAResoure.Validate.Required(this.lable);
+      } else {
+        this.isValid = false
+        this.txtValid='';
+        }
     },
     onlyNumberKey: function (evt) {
       // Only ASCII character in that range allowed
@@ -68,11 +88,34 @@ export default {
       }
     },
     setFormatValue: function (value) {
-      let s = parseInt(value);
-      if (value > 0 && value < 10) {
-        s = "0" + value;
+      try {
+        let s = parseInt(value);
+        if (value >= 0 && value < 10) {
+          s = "0" + value;
+        }
+        return s;
+      } catch {
+        return "0";
       }
-      return s;
+    },
+        /**
+     * @description: Focus cho input
+     * @param: {any}
+     * Author: NNduc (11/04/2023)
+     */
+    autoFocusComplete: function () {
+      this.$refs.input.focus();
+    },
+    
+    /**
+     * @description: Hiện cảnh báo và hiện text khi người dùng sai thông tin
+     * @param: {any}
+     * Author: NNduc (29/04/2023)
+     */
+    showTextValidate(){
+      this.$refs.input.blur();
+      this.isValid = true;
+      //this.txtValid = s;
     },
   },
 };
@@ -80,4 +123,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.input-err{
+   border: 1px solid red;
+}
 </style>

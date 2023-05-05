@@ -11,12 +11,13 @@
       @blur="onBlurInputValidate"
       :disabled="disable"
       min="0"
-      max="10"
+      max="1"
       step="0.1"
+      @focus="onFocusInputListener"
     />
-    <div class="icon-ip-number"></div>
+    <div class="icon-ip-number" ></div>
   </div>
-  <div class="txt--error" style="color: red" v-if="isValid">{{ txtValid }}</div>
+  <div class="txt--error" style="color: red"  v-if="isValid && txtValid!=''">{{ txtValid }}</div>
 </template>
 
 <script>
@@ -29,6 +30,7 @@ export default {
     placehoder: String,
     require: Boolean,
     disable: Boolean,
+    name:Object
   },
   data() {
     return {
@@ -50,10 +52,18 @@ export default {
     },
   },
   methods: {
+           /**
+     * @description: Sự kiện focus để lấy name chuyển sang component cha 
+     * @param: {any}
+     * Author: NNduc (21/04/2023)
+     */
+    onFocusInputListener:function(){
+      this.$emit("onFocusInputListener",this.name);
+    },
     onBlurInputValidate: function () {
       if ((this.value === "" || this.value == null) && this.require) {
         this.isValid = true;
-        this.txtValid = this.lable + " không được để trống";
+        this.txtValid = this.MISAResoure.Validate.Required(this.lable);
       } else this.isValid = false;
     },
     onlyNumberKey: function (evt) {
@@ -69,10 +79,24 @@ export default {
     setFormatValue: function (value) {
       return parseFloat((value / 100).toFixed(4));
     },
+    
+    /**
+     * @description: Hiện cảnh báo và hiện text khi người dùng sai thông tin
+     * @param: {any}
+     * Author: NNduc (29/04/2023)
+     */
+    showTextValidate(){
+
+      this.isValid = true;
+      //this.txtValid = s;
+    },
   },
 };
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.input-err{
+   border: 1px solid red;
+}
 </style>

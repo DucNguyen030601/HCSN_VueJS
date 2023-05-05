@@ -1,34 +1,32 @@
 <template>
-  <ul class="table-footer__pagging">
-    <li @click="previousPage">
-      {{ "<" }}
-    </li>
+  <div class="table-footer">
+    <div class="table-footer__info">
+      <span
+        >Tổng số: <span style="font-weight: bold">{{ totalRecord }}</span> bản
+        ghi
+      </span>
+    </div>
 
-    <template v-if="totalPage < 4">
-      <li
-        v-for="(item, index) in totalPage"
-        :key="index"
-        :class="{ 'pagging__item--active': item == active }"
-        @click="getValue(item)"
-      >
-        {{ item }}
+    <base-combobox-vue :typeUp="true" v-model="dPageSize" :arrData="arrPage" :isReadOnly="true" v-if="arrPage"/>
+
+    <ul class="table-footer__pagging" v-if="totalPage">
+      <li @click="previousPage" :class="{ disable: dPage == 1 }">
+        {{ "<" }}
       </li>
-    </template>
-
-    <template v-if="totalPage > 3">
-      <template v-for="(item, index) in totalPage" :key="index">
-        
+      <template v-for="(item, index) in pages" :key="index">
         <li
-          :class="{ 'pagging__item--active': item == active }"
+          :class="{ 'pagging__item--active': item == dPage }"
           @click="getValue(item)"
         >
           {{ item }}
         </li>
       </template>
-    </template>
 
-    <li @click="nextPage">{{ ">" }}</li>
-  </ul>
+      <li @click="nextPage" :class="{ disable: dPage == totalPage }">
+        {{ ">" }}
+      </li>
+    </ul>
+  </div>
 </template>
 
 <script>
@@ -36,17 +34,59 @@ export default {
   name: "BasePaging",
   props: {
     msg: String,
+    page: Number,
+    pageSize: Number,
     totalPage: Number,
+    totalRecord: Number,
+    arrPage: Array,
+  },
+  created() {
+    this.dPage = this.page;
+    this.dPageSize = this.pageSize;
   },
   data() {
     return {
-      active: 1,
+      dPage: null,
+      dPageSize: null,
     };
+  },
+  computed: {
+    /**
+     * @description: Trả về 1 mảng phần tử trang hiện lên màn hình
+     * @param: {any}
+     * Author: NNduc (31/03/2023)
+     */
+    pages() {
+      let page = [];
+      for (let index = 1; index <= this.totalPage; index++) {
+        if (
+          index == 1 ||
+          index == this.totalPage ||
+          (index <= this.dPage + 2 && index >= this.dPage - 2)
+        ) {
+          page.push(index);
+        } else if (index == this.dPage + 3 || index == this.dPage - 3) {
+          page.push("...");
+        }
+      }
+      return page;
+    },
+  },
+  watch: {
+    dPageSize: function (nVal) {
+      this.$emit("update:pageSize", nVal);
+      this.$emit("update:page", 1);
+      this.dPage = 1;
+    },
+    page:function(nVal){
+        this.dPage = nVal;
+    }
   },
   methods: {
     getValue: function (val) {
-      this.active = val;
-      this.$emit("update:modelValue", val);
+      if (val == "...") return;
+      this.dPage = val;
+      this.$emit("update:page", val);
     },
     /**
      * Hàm xử lý lấy trang trước nó
@@ -56,9 +96,9 @@ export default {
       //active ở đây được coi như là trang hiện tại
       //nếu trang > 1 thì cho trang hiện tại trừ đi 1
       //còn không thì giữ nguyên trang hiện tại
-      if (this.active > 1) this.active -= 1;
+      if (this.dPage > 1) this.dPage -= 1;
 
-      this.getValue(this.active);
+      this.getValue(this.dPage);
     },
     /**
      * Hàm xử lý lấy trang sau nó
@@ -68,9 +108,9 @@ export default {
       //active ở đây được coi như là trang hiện tại
       //nếu trang nhỏ hơn tổng số trang (trang cuối) thì cho trang hiện tại cộng thêm 1
       //còn không thì giữ nguyên trang hiện tại
-      if (this.active < this.totalPage) this.active += 1;
+      if (this.dPage < this.totalPage) this.dPage += 1;
 
-      this.getValue(this.active);
+      this.getValue(this.dPage);
     },
   },
 };
@@ -78,4 +118,8 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.disable {
+  opacity: 0.5;
+  cursor: default;
+}
 </style>

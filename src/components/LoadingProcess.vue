@@ -22,6 +22,7 @@ export default {
     right: 0;
     top: 0;
     position: fixed;
+    z-index: 3;
 }
 
 .process {

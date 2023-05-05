@@ -114,7 +114,7 @@ export default {
   created() {
     //this.setFormatValue(this.typeInput, this.modelValue);
     this.value = this.modelValue;
-    if (this.require) this.txtValid = this.lable + " không được để trống";
+    if (this.require) this.txtValid = this.MISAResoure.Validate.Required(this.lable);
   },
   watch: {
     // value: function (nVal) {

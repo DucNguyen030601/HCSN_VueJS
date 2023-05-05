@@ -22,7 +22,6 @@ export default {
   name: "InputDate",
   props: {
     modelValue: String,
-    typeInput: String,
     lable: String,
     placehoder: String,
     require: Boolean,
@@ -43,7 +42,6 @@ export default {
       this.$emit("update:modelValue", nVal);
     },
     modelValue: function (nVal) {
-
       this.value = nVal;
     },
   },
@@ -51,7 +49,7 @@ export default {
     onBlurInputValidate: function () {
       if ((this.value === "" || this.value == null) && this.require) {
         this.isValid = true;
-        this.txtValid = this.lable + " không được để trống";
+        this.txtValid = this.MISAResoure.Validate.Required(this.lable);
       } else this.isValid = false;
     },
   },

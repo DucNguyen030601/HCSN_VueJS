@@ -1,9 +1,9 @@
 <template>
-  <div class="popup">
+  <div class="popup" v-keydown-ctrl-s="stateKeyDown" v-keydown-esc="closeForm">
     <div class="popup-form">
       <div class="popup-form__header">
         <h2>{{ title }}</h2>
-        <div class="header__close" style="cursor: pointer" @click="closeForm">
+        <div class="header__close" @click="closeForm">
           <div class="tooltip">
             <div class="icon-close-popup"></div>
             <span class="tooltip__text">Đóng</span>
@@ -14,19 +14,28 @@
       <div class="popup-form__grid">
         <div class="grid__item">
           <input-text-vue
-            v-model="model.fixed_asset_code"
+            v-model.trim="model.fixed_asset_code"
             lable="Mã tài sản"
             :require="true"
             placehoder="Nhập mã tài sản"
+            :isFocus="true"
+            ref="fixedAssetCode"
+            maxLength="100"
+            name="fixedAssetCode"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
 
         <div class="grid__item">
           <input-text-vue
-            v-model="model.fixed_asset_name"
+            v-model.trim="model.fixed_asset_name"
             lable="Tên tài sản"
             :require="true"
             placehoder="Nhập tên tài sản"
+            ref="fixedAssetName"
+            maxLength="255"
+            name="fixedAssetName"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
         <div class="grid__item">
@@ -41,6 +50,9 @@
             v-model="model.department_code"
             v-model:department_name="model.department_name"
             v-model:department_id="model.department_id"
+            ref="departmentCode"
+            name="departmentCode"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
         <div class="grid__item">
@@ -69,6 +81,9 @@
             v-model:fixed_asset_category_name="model.fixed_asset_category_name"
             v-model:life_time="model.life_time"
             v-model:depreciation_rate="model.depreciation_rate"
+            ref="fixedAssetCategoryCode"
+            name="fixedAssetCategoryCode"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
         <div class="grid__item">
@@ -83,6 +98,9 @@
             lable="Số lượng"
             v-model="model.quantity"
             :require="true"
+            ref="quantity"
+            name="quantity"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
 
@@ -91,6 +109,9 @@
             lable="Nguyên giá"
             v-model="model.cost"
             :require="true"
+            ref="cost"
+            name="cost"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
         <div class="grid__item">
@@ -98,6 +119,9 @@
             lable="Số năm sử dụng"
             v-model="model.life_time"
             :require="true"
+            ref="lifeTime"
+            name="lifeTime"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
         <div class="grid__item">
@@ -122,30 +146,37 @@
           />
         </div>
         <div class="grid__item">
-          <input-date-vue
+          <input-date-custom-vue
             lable="Ngày mua"
+            type="dd/mm/yyyy"
             v-model="model.purchase_date"
             :require="true"
+            ref="purchaseDate"
+            name="purchaseDate"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
         <div class="grid__item">
-          <input-date-vue
+          <input-date-custom-vue
             lable="Ngày bắt đầu sử dụng"
+            type="dd/mm/yyyy"
             v-model="model.production_year"
             :require="true"
+            ref="productionYear"
+            name="productionYear"
+            @onFocusInputListener="onFocusInputListener"
           />
         </div>
       </div>
       <div class="popup-form__footer">
         <button
           class="btn btn--primary"
-          id="btnSave"
           style="width: 120px"
           @click="btnOnClickSave"
         >
           Lưu
         </button>
-        <button class="btn" style="width: 120px" @click="btnOnClickCancel">
+        <button class="btn" style="width: 120px" @click="closeForm()">
           Huỷ
         </button>
       </div>
@@ -187,44 +218,133 @@ export default {
       EX_FixedAsset: null, //lưu trữ dữ liệu cũ,
       isShowDialog: false,
       isLoadingProcess: false,
-      depreciation_cost: Number,
+      depreciation_cost: 0,
+      focusName: null,
     };
   },
   watch: {
     "model.cost": function (nVal) {
-      this.depreciation_cost = nVal * this.model.depreciation_rate;
+      if (!nVal) this.depreciation_cost = 0 * this.model.depreciation_rate;
+      else this.depreciation_cost = nVal * this.model.depreciation_rate;
     },
     "model.life_time": function (nVal) {
-      this.model.depreciation_rate = parseFloat((1 / nVal).toFixed(4));
+      if (!nVal) this.model.depreciation_rate = 0;
+      else this.model.depreciation_rate = parseFloat((1 / nVal).toFixed(4));
       this.depreciation_cost = this.model.depreciation_rate * this.model.cost;
     },
   },
   methods: {
     /**
-     * Kiểm tra thông tin các trường
+     * @description:
+     * @param: {any}
+     * Author: NNduc (21/04/2023)
+     */
+    onFocusInputListener: function (name) {
+      this.focusName = name;
+    },
+    /**
+     * Hàm xử lý nhấn CTRL S
+     * Author NNduc(13/3/2023)
+     */
+    stateKeyDown: function () {
+      this.$refs.purchaseDate.onBlurInputValidate();
+      this.$refs.productionYear.onBlurInputValidate();
+      this.btnOnClickSave();
+    },
+
+    /**
+     * Kiểm tra thông tin các trường và show dialog
      * Author NNduc (5/3/2023)
      */
     validateForm: function () {
-      if (/^([A-Z]{2}[0-9]{5})$/.test(this.model.fixed_asset_code) == false) {
-        this.showDialog(
-          this.MISAResoure.Dialog.Title.Validate(
-            this.MISAResoure.Form.FixedAsset.Lable.FixedAssetCode
-          ) + this.MISAResoure.Form.FixedAsset.Validate.RegExpCodeText,
-          this.MISAResoure.Dialog.Button.Close
+      var title = "";
+      if (!this.model.fixed_asset_id) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.FixedAssetId
         );
-        return false;
-      }
-      if (!this.model.fixed_asset_name) {
-        this.showDialog(
-          this.MISAResoure.Dialog.Title.Validate(
-            this.MISAResoure.Form.FixedAsset.Lable.FixedAssetName
-          ),
-          this.MISAResoure.Dialog.Button.Close
+        this.focusName = "fixedAssetId";
+      } else if (!this.model.fixed_asset_name) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.FixedAssetName
         );
-        return false;
+        this.focusName = "fixedAssetName";
+      } else if (!this.model.department_code) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.DepartmentCode
+        );
+        this.focusName = "departmentCode";
+      } else if (!this.model.fixed_asset_category_code) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.FixedAssetCategoryCode
+        );
+        this.focusName = "fixedAssetCategoryCode";
+      } else if (!this.model.quantity) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.Quantity
+        );
+        this.focusName = "quantity";
+      } else if (this.model.quantity < 1) {
+        title = this.MISAResoure.Dialog.Title.ValidateGreaterThanZero(
+          this.MISAResoure.Form.FixedAsset.Lable.Quantity
+        );
+        this.focusName = "quantity";
+      } else if (!this.model.cost) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.Cost
+        );
+        this.focusName = "cost";
+      } else if (this.model.cost < 1) {
+        title = this.MISAResoure.Dialog.Title.ValidateGreaterThanZero(
+          this.MISAResoure.Form.FixedAsset.Lable.Cost
+        );
+        this.focusName = "cost";
+      } else if (!this.model.life_time) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.LifeTime
+        );
+        this.focusName = "lifeTime";
+      } else if (!this.model.purchase_date) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.PurchaseDate
+        );
+        this.focusName = "purchaseDate";
+      } else if (!this.model.production_year) {
+        title = this.MISAResoure.Dialog.Title.ValidateRequired(
+          this.MISAResoure.Form.FixedAsset.Lable.ProductionYear
+        );
+        this.focusName = "productionYear";
+      } else if (
+        new Date(this.model.production_year).getTime() -
+          new Date(this.model.purchase_date).getTime() <
+        0
+      ) {
+        title =
+          this.MISAResoure.Form.FixedAsset.Validate
+            .ValidatePurchaseProductionDate;
+        this.focusName = "productionYear";
       }
+      if (title) {
+        this.$refs[this.focusName].showTextValidate();
+        this.showDialog(title, this.MISAResoure.Dialog.Button.Close);
+        return false;
+      } else return true;
+    },
 
-      return true;
+    /**
+     * @description: Kiểm tra thông tin các trường và sẽ show text dưới các input
+     * @param: {any}
+     * Author: NNduc (10/04/2023)
+     */
+    showBlurInputs: function () {
+      // this.$refs.fixedAssetCode.onBlurInputValidate();
+      // this.$refs.fixedAssetName.onBlurInputValidate();
+      // this.$refs.departmentCode.onBlurInputValidate();
+      // this.$refs.fixedAssetCategoryCode.onBlurInputValidate();
+      // this.$refs.quantity.onBlurInputValidate();
+      // this.$refs.cost.onBlurInputValidate();
+      // this.$refs.lifeTime.onBlurInputValidate();
+      // this.$refs.PurchaseDate.onBlurInputValidate();
+      // this.$refs.ProductionYear.onBlurInputValidate();
     },
 
     /**
@@ -232,7 +352,6 @@ export default {
      * Author: NNDuc (2/3/2023)
      */
     closeForm: function () {
-      console.log(this.model);
       //nếu trong trạng thái sửa
       //kiểm tra hỏi có muốn thay đổi dữ liệu không? nếu có sẽ show cảnh báo
       const NW_FixedAsset = JSON.stringify(this.model);
@@ -251,19 +370,11 @@ export default {
         this.state == this.MISAEnum.FormState.Clone
       ) {
         //gán các thông tin vào cảnh báo
-        let title = this.MISAResoure.Dialog.Title.Warning;
+        let title = this.MISAResoure.Dialog.Title.CancelWarning(this.MISAResoure.Form.FixedAsset.Name);
         let titleBtnPr = this.MISAResoure.Dialog.Button.Cancel;
         let titleBtnOut = this.MISAResoure.Dialog.Button.No;
         this.showDialog(title, titleBtnPr, titleBtnOut);
       } else this.$emit("closeForm");
-    },
-
-    /**
-     * Xử lý sự kiện click Huỷ form
-     * Author: NNduc(5/3/2023)
-     */
-    btnOnClickCancel: function () {
-      this.closeForm();
     },
 
     /**
@@ -280,19 +391,20 @@ export default {
             .post(api, this.model)
             .then((response) => {
               this.isLoadingProcess = false;
-              if (response.status == 201) {
+              if (response) {
                 this.$emit("load");
               }
             })
             .catch((e) => {
               this.isLoadingProcess = false;
-              let title = e.response.data.title;
-              let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-              this.showDialog(title, titleBtnPr);
+              let errorCode = e.response.data.ErrorCode;
+              console.log(e);
+              this.showDialogError(errorCode);
             });
         } else if (this.state == this.MISAEnum.FormState.Edit) {
           //Xử lý dialog form sửa
           this.isLoadingProcess = true;
+
           const api = this.MISAResoure.API.FixedAsset.UpdateId(
             this.model.fixed_asset_id
           );
@@ -300,15 +412,15 @@ export default {
             .put(api, this.model)
             .then((response) => {
               this.isLoadingProcess = false;
-              if (response.status == 200) {
+              if (response) {
                 this.$emit("load");
               }
             })
             .catch((e) => {
               this.isLoadingProcess = false;
-              let title = e.response.data.title;
-              let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-              this.showDialog(title, titleBtnPr);
+              let errorCode = e.response.data.ErrorCode;
+              console.log(e);
+              this.showDialogError(errorCode);
             });
         } else {
           //Xử lý dialog form nhân bản
@@ -318,17 +430,42 @@ export default {
             .post(api, this.model)
             .then((response) => {
               this.isLoadingProcess = false;
-              if (response.status == 201) {
+              if (response) {
                 this.$emit("load");
               }
             })
             .catch((e) => {
               this.isLoadingProcess = false;
-              let title = e.response.data.title;
-              let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-              this.showDialog(title, titleBtnPr);
+              let errorCode = e.response.data.ErrorCode;
+              console.log(e);
+              this.showDialogError(errorCode);
             });
         }
+      }
+    },
+
+    /**
+     * @description: Hiện dialog lỗi
+     * @param: {any}
+     * Author: NNduc (10/04/2023)
+     */
+    showDialogError: function (errorCode) {
+      var title = "";
+      if (errorCode == this.MISAEnum.ErrorCode.DulicateCode) {
+        title = this.MISAResoure.Dialog.Title.DulicateCode(
+          this.MISAResoure.Form.FixedAsset.Lable.FixedAssetCode,
+          this.model.fixed_asset_code
+        );
+        this.focusName = "fixedAssetCode";
+        this.$refs[this.focusName].showTextValidate();
+        let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
+        this.showDialog(title, titleBtnPr);
+      } else if (errorCode == this.MISAEnum.ErrorCode.InvalidData) {
+        this.validateForm();
+      } else {
+        title = this.MISAResoure.Dialog.Title.Warning;
+        let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
+        this.showDialog(title, titleBtnPr);
       }
     },
 
@@ -347,6 +484,7 @@ export default {
           this.state == this.MISAEnum.FormState.Edit &&
           NW_FixedAsset != this.EX_FixedAsset)
       ) {
+        this.$refs[this.focusName].autoFocusComplete();
         this.isShowDialog = false;
       } else if (
         choose == this.MISAResoure.Dialog.Button.Cancel ||
@@ -386,7 +524,7 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style >
+<style scoped>
 .popup {
   background-color: rgba(0, 0, 0, 0.16);
   bottom: 0;
@@ -394,13 +532,14 @@ export default {
   right: 0;
   top: 0;
   position: fixed;
+  z-index: 3;
 }
 .popup-form {
   background-color: white;
   position: absolute;
-  width: 800px;
+  width: 870px;
   top: 50%;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
   border-radius: 4px;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -412,39 +551,24 @@ export default {
   padding: 16px 16px 20px 16px;
 }
 
+.popup-form__header .header__close {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .popup-form__grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 84px 84px 84px 84px 84px 84px;
   column-gap: 16px;
-  row-gap: 20px;
-  padding: 0px 16px 20px 16px;
-}
-.grid__item .dropdown,
-.grid__item .txt-box--number,
-.grid__item .txt-box--date {
-  margin-top: 8px;
-}
-.grid__item > input {
-  margin-top: 8px;
-}
-
-.grid__item input,
-.grid__item .txt-box--number {
-  height: 37px;
-  width: 100%;
-}
-.grid__item .dropdown {
-  width: 100%;
-  height: 37px;
-}
-
-.grid__item input::placeholder {
-  font-style: italic;
+  /* row-gap: 20px; */
+  padding: 0px 16px 0px 16px;
 }
 .popup-form__grid .grid__item:first-child {
   grid-column: 1/1;
 }
-
 .popup-form__grid
   :where(
     .grid__item:nth-child(2),
@@ -453,7 +577,6 @@ export default {
   ) {
   grid-column: 2/4;
 }
-
 .popup-form__footer {
   padding: 0 16px;
   align-items: center;
@@ -467,8 +590,5 @@ export default {
 .popup-form__footer button {
   height: 36px;
   width: 110px;
-}
-.txt--error {
-  font-size: 13px;
 }
 </style>
