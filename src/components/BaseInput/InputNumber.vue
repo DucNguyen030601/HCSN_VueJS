@@ -13,8 +13,11 @@
     @input="sendValue($event.target.value)"
     ref="input"
     @focus="onFocusInputListener"
+    :maxlength="maxLength"
   />
-  <div class="txt--error" style="color: red" v-if="isValid && txtValid!=''">{{ txtValid }}</div>
+  <div class="txt--error" style="color: red" v-if="isValid && txtValid != ''">
+    {{ txtValid }}
+  </div>
 </template>
 
 <script>
@@ -24,10 +27,14 @@ export default {
     modelValue: String,
     typeInput: String,
     lable: String,
-    placehoder: String,
+    placeholder: String,
     require: Boolean,
     disable: Boolean,
     name: Object,
+    maxLength: {
+      type: Number,
+      default: 524288,
+    },
   },
   data() {
     return {
@@ -82,10 +89,10 @@ export default {
       var charCode = evt.which ? evt.which : evt.keyCode;
       if (charCode > 31 && (charCode < 48 || charCode > 57)) {
         evt.preventDefault();
-      }else {
-        this.isValid = false
-        this.txtValid='';
-        }
+      } else {
+        this.isValid = false;
+        this.txtValid = "";
+      }
     },
     /**
      * @description: Focus cho input
@@ -95,13 +102,13 @@ export default {
     autoFocusComplete: function () {
       this.$refs.input.focus();
     },
-    
+
     /**
      * @description: Hiện cảnh báo và hiện text khi người dùng sai thông tin
      * @param: {any}
      * Author: NNduc (29/04/2023)
      */
-    showTextValidate(){
+    showTextValidate() {
       this.$refs.input.blur();
       this.isValid = true;
       //this.txtValid = s;

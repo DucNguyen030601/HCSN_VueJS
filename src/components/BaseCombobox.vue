@@ -6,25 +6,38 @@
     class="dropdown"
     :class="{ 'dropdown--filter': filter, 'dropdown--up': typeUp }"
     v-click-outside="closeMenu"
+    @mouseleave="isStateMenu = false"
   >
     <div class="dropdown__select">
       <input
         class="txt-box"
-        :placeholder="placehoder"
+        :placeholder="placeholder"
         :disabled="disable"
-        v-model="value"
+        v-model.trim="value"
         :class="{
           'input-err': isValid,
-          'placehoder-normal': stylePlacehoder == 'normal',
+          'placeholder-normal': styleplaceholder == 'normal',
         }"
-        @focus="openMenu"
         @keydown="stateKeyDown($event)"
-        @input="stateSearchInput"
+        @input="stateSearchInput($event.target.value)"
         @blur="onBlurInputValidate"
         ref="input"
+        @click="openMenu"
+        @mousedown.left="isStateMenu = true"
+        @focus="onFocusInputListener"
       />
-      <div class="icon-dr-down" @click="stateMenu" v-if="!typeUp"></div>
-      <div class="icon-dr-up" @click="stateMenu" v-if="typeUp"></div>
+      <div
+        class="icon-dr-down"
+        @click="stateMenu"
+        @mousedown.left="isStateMenu = true"
+        v-if="!typeUp"
+      ></div>
+      <div
+        class="icon-dr-up"
+        @click="stateMenu"
+        @mousedown.left="isStateMenu = true"
+        v-if="typeUp"
+      ></div>
       <div class="icon-filter" v-if="filter"></div>
     </div>
     <div
@@ -38,14 +51,17 @@
           class="menu__item"
           :class="{
             active: index == active,
-            'active-check': index == activeCheck && checkActive,
+            'active-check':
+              (get ? item[get] : item) == checkValue && checkActive,
           }"
-          @mousedown.left="getValue(item)"
+          @mousedown.left="isStateMenu = true"
+          @click="getValue(item)"
           ref="menuItem"
         >
           {{ get ? item[get] : item }}
         </div>
       </template>
+      <base-no-data-vue size="medium" v-if="model.length == 0" />
     </div>
   </div>
   <div class="txt--error" style="color: red" v-if="isValid && txtValid != ''">
@@ -53,8 +69,12 @@
   </div>
 </template>
 <script>
+import BaseNoDataVue from "./BaseNoData.vue";
 export default {
   name: "BaseCombobox",
+  components: {
+    BaseNoDataVue,
+  },
   props: {
     modelValue: String,
     filter: Boolean,
@@ -65,16 +85,17 @@ export default {
       type: Boolean,
       default: true,
     },
-    placehoder: String,
+    placeholder: String,
     require: Boolean,
     disable: Boolean,
+    isFocus: Boolean,
     api: String,
     arrData: Array,
     get: [Array, String],
     send: [Array, String],
     isReadOnly: Boolean,
-    stylePlacehoder: String,
-    name: Object,
+    styleplaceholder: String,
+    name: String,
   },
   watch: {
     modelValue: function (nVal) {
@@ -102,8 +123,22 @@ export default {
         this.$refs.input.readOnly = true;
       });
     }
+    if (this.isFocus) {
+      this.$nextTick(function () {
+        this.autoFocusComplete();
+      });
+    }
   },
   methods: {
+    /**
+     * @description: Sự kiện focus để lấy name chuyển sang component cha
+     * @param: {any}
+     * Author: NNduc (21/04/2023)
+     */
+    onFocusInputListener: function () {
+      this.checkValue = this.value;
+      this.$emit("onFocusInputListener", this.name);
+    },
     /**
      * @description: Sự kiện click bên ngoài đóng menu
      * @param: {any}
@@ -121,10 +156,10 @@ export default {
       this.isShowMenu = true;
       //kiểm tra giá trị với các item menu
       this.checkItemMenu();
-      this.$emit("onFocusInputListener", this.name);
     },
 
     stateMenu: function () {
+      this.$refs.input.focus();
       this.isShowMenu = !this.isShowMenu;
       if (this.isShowMenu) this.checkItemMenu();
     },
@@ -135,13 +170,13 @@ export default {
      */
     checkItemMenu: function () {
       this.active = -1;
-      this.activeCheck = -1;
+      this.checkValue = "";
       this.model = this.EX_MODEL;
       for (const key in this.model) {
         let val = this.get ? this.model[key][this.get] : this.model[key];
         if (val == this.value) {
           this.active = key;
-          this.activeCheck = key;
+          this.checkValue = val;
         }
       }
     },
@@ -169,45 +204,62 @@ export default {
         this.$emit("update:modelValue", this.value);
         this.isValid = false;
       }
+      this.checkValue = this.value;
+      this.$refs.input.focus();
       this.isShowMenu = false;
-      this.$refs.input.blur();
     },
 
+    /**
+     * @description:
+     * @param: {any}
+     * Author: NNduc (12/05/2023)
+     */
+    scrollItem(position) {
+      if (position >= 0) {
+        var coordinatesY = 0;
+        for (let index = 0; index < position; index++) {
+          coordinatesY += this.$refs.menuItem[index].offsetHeight;
+        }
+        this.$refs.menu.scrollTo({
+          top: coordinatesY,
+          left: 0,
+          behavior: "smooth",
+        });
+      }
+    },
     /**
      * Hàm xử lý các sự kiện ấn nút lên, nút xuống, enter để chọn các item tương ứng
      * Author NNduc(7/3/2023)
      */
     stateKeyDown: function (evt) {
       if (!this.checkActive) return;
-      evt = evt ? evt : window.event;
-      var charCode = evt.which ? evt.which : evt.keyCode;
+      var charCode = evt.keyCode;
       switch (charCode) {
-        case this.MISAEnum.KeySate.ArrowDown:
+        case this.MISAEnum.KeyCode.ArrowDown:
+          evt.preventDefault();
           if (this.active > this.model.length - 2) {
             this.active = 0;
-            this.$refs.menu.scrollTop = 0;
           } else {
             this.active++;
-            this.$refs.menuItem[this.active].scrollIntoView({
-              behavior: "smooth",
-            });
           }
+          this.scrollItem(this.active);
           break;
-        case this.MISAEnum.KeySate.ArrowUp:
+        case this.MISAEnum.KeyCode.ArrowUp:
+          evt.preventDefault();
           if (this.active == 0) {
             this.active = this.model.length - 1;
-            this.$refs.menu.scrollTop = this.$refs.menu.scrollHeight;
           } else {
             this.active--;
-            if (this.active == 0) this.$refs.menu.scrollTop = 0;
-            else
-              this.$refs.menuItem[this.active].scrollIntoView({
-                behavior: "smooth",
-              });
           }
+          this.scrollItem(this.active);
           break;
-        case this.MISAEnum.KeySate.Enter:
-          this.getValue(this.model[this.active]);
+        case this.MISAEnum.KeyCode.Enter:
+          evt.preventDefault();
+          if (this.isShowMenu) this.getValue(this.model[this.active]);
+          else this.openMenu();
+          break;
+        case 9:
+          this.isStateMenu = false;
           break;
         default:
           break;
@@ -218,15 +270,11 @@ export default {
      * Hàm xử lý sự kiện tìm kiếm các item tương ứng của menu
      * Author NNduc (7/3/2023)
      */
-    stateSearchInput: function () {
+    stateSearchInput: function (nVal) {
       const get = this.get;
-      const val = this.value;
-      if (!val) {
-        this.active = -1;
-        this.activeCheck = -1;
-      }
+      this.active = -1;
       this.model = this.EX_MODEL.filter(function (item) {
-        return item[get].toLowerCase().includes(val.toLowerCase());
+        return item[get].toLowerCase().includes(nVal.toLowerCase());
       });
     },
 
@@ -236,13 +284,17 @@ export default {
      * Author: NNduc (11/04/2023)
      */
     onBlurInputValidate: function () {
-      if (!this.value && this.require) {
-        this.isValid = true;
-        this.txtValid = this.MISAResoure.Validate.Required(this.lable);
-      } else this.isValid = false;
-      setTimeout(() => {
+      if (!this.isStateMenu) {
+        if (!this.value && this.require && !this.checkValue) {
+          this.isValid = true;
+          this.txtValid = this.MISAResoure.Validate.Required(this.lable);
+        } else {
+          this.value = this.checkValue;
+          this.isValid = false;
+        }
         this.isShowMenu = false;
-      }, 100);
+      }
+      this.isStateMenu = false;
     },
 
     /**
@@ -274,7 +326,7 @@ export default {
       model: [{}],
       EX_MODEL: [{}],
       active: -1,
-      activeCheck: -1,
+      checkValue: "",
     };
   },
 };
@@ -291,7 +343,7 @@ export default {
 input:read-only {
   cursor: default;
 }
-.placehoder-normal::placeholder {
+.placeholder-normal::placeholder {
   font-style: normal;
   color: black;
 }

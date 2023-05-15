@@ -4,7 +4,7 @@
       <base-combobox-vue
         lable="Nguồn hình thành"
         :hasLable="false"
-        placehoder="Chọn nguồn hình thành"
+        placeholder="Chọn nguồn hình thành"
         :require="true"
         :checkActive="true"
         :arrData="arrData"
@@ -19,7 +19,7 @@
     </div>
     <div class="grid__item">
       <input-money-vue
-        lable="Nguyên giá"
+        lable="Giá trị"
         :hasLable="false"
         v-model="model.cost"
         :require="true"
@@ -30,18 +30,17 @@
     </div>
     <div class="grid__item-feature">
       <div class="tooltip">
-             <div class="icon-add-task" @click="$emit('addTask', index)"></div> 
-              <span class="tooltip__text">Thêm nguồn hình thành</span>
-            </div>
-     <div class="tooltip">
-  <div
-        class="icon-delete-task"
-        v-if="hasEventRemoveTask"
-        @click="$emit('removeTask', index)"
-      ></div>
-              <span class="tooltip__text">Xoá nguồn hình thành</span>
-            </div>
-     
+        <div class="icon-add-task" @click="$emit('addTask', index)"></div>
+        <span class="tooltip__text">Thêm nguồn hình thành</span>
+      </div>
+      <div class="tooltip">
+        <div
+          class="icon-delete-task"
+          v-if="hasEventRemoveTask"
+          @click="$emit('removeTask', index)"
+        ></div>
+        <span class="tooltip__text">Xoá nguồn hình thành</span>
+      </div>
     </div>
   </div>
 </template>
@@ -58,6 +57,8 @@ export default {
       type: Boolean,
       default: true,
     },
+    isFocus: Boolean,
+    indexStateFocus: Number,
   },
   data() {
     return {
@@ -71,23 +72,26 @@ export default {
   methods: {
     onFocusInputListener: function (name) {
       this.focusName = name;
-      this.$emit("focusIndex",this.index);
+      this.$emit("focusIndex", this.index);
     },
     focusInput: function () {
-     this.$refs[this.focusName].autoFocusComplete();
+      this.$refs[this.focusName].autoFocusComplete();
     },
-    showTextValidate:function(){
+    showTextValidate: function () {
       this.$refs[this.focusName].showTextValidate();
+    },
+    test:function(){
+      this.$refs.budgetName.autoFocusComplete();
     }
   },
-  watch:{
-     task: {
+  watch: {
+    task: {
       handler: function (nVal) {
         this.model = nVal;
       },
       deep: true,
-    },
-  }
+    }
+  },
 };
 </script>
 

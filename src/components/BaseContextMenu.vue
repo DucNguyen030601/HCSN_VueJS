@@ -4,21 +4,14 @@
     :style="{ left: offsetX + 'px', top: offsetY + 'px' }"
     v-click-outside="closeContextMenu"
   >
-    <div class="menu-item" @click="openForm(MISAEnum.FormState.Add)">
-      <div class="icon-add"></div>
-      Thêm tài sản
-    </div>
-    <div class="menu-item" @click="openForm(MISAEnum.FormState.Edit)">
-      <div class="icon-edit"></div>
-      Sửa tài sản
-    </div>
-    <div class="menu-item" @click="openForm(MISAEnum.FormState.Clone)">
-      <div class="icon-copy"></div>
-      Nhân bản tài sản
-    </div>
-    <div class="menu-item" @click="openForm(MISAEnum.FormState.Delete)">
-      <div class="icon-bin"></div>
-      Xoá tài sản
+    <div
+      v-for="(item, i) in itemFeatureContextMenu"
+      :key="i"
+      class="menu-item"
+      @click="openForm(item.state)"
+    >
+      <div :class="[item.icon,'icon-item']"></div>
+      {{ item.name }}
     </div>
   </div>
 </template>
@@ -26,23 +19,23 @@
 export default {
   name: "BaseContextMenu",
   props: {
-    msg: String
+    msg: String,
+    itemFeatureContextMenu: Array,
   },
   data() {
     return {
       offsetY: 0,
       offsetX: 0,
-      id:null
+      id: null,
     };
   },
   methods: {
-    closeContextMenu(){
-      this.$emit('closeContextMenu')
-    }
-    ,
+    closeContextMenu() {
+      this.$emit("closeContextMenu");
+    },
     openForm: function (state) {
       this.$emit("closeContextMenu");
-      this.$emit("openForm", state,this.id);
+      this.$emit("openForm", state, this.id);
     },
   },
 };
@@ -67,6 +60,9 @@ export default {
   padding: 0 25px;
   column-gap: 14px;
   cursor: pointer;
+}
+.context-menu .menu-item .icon-item{
+  width: 25px;
 }
 .context-menu .menu-item:hover {
   background-color: rgba(26, 164, 200, 0.2);

@@ -67,6 +67,9 @@
     background-color: #1ac871;
     animation: progess 1.5s linear forwards;
 }
+.toast--error::before{
+    background-color: red;
+}
 
 @keyframes progess {
     100% {

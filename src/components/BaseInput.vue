@@ -67,7 +67,7 @@
     <input
       type="text"
       class="txt-box"
-      :placeholder="placehoder"
+      :placeholder="placeholder"
       v-model.trim="value"
       :class="{ 'input-err': isValid, 'txt-box--disable': disable }"
       @blur="onBlurInputValidate"
@@ -100,7 +100,7 @@ export default {
     modelValue: [String, Number, Boolean],
     typeInput: String,
     lable: String,
-    placehoder: String,
+    placeholder: String,
     require: Boolean,
     disable: Boolean,
   },

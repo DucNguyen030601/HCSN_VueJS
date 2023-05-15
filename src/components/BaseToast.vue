@@ -1,20 +1,25 @@
 <template>
-     <div class="toast">
-        <div class="icon-toast-sucess"></div>
-        <div class="toast__content">Lưu dữ liệu thành công!</div>
+  <div class="toast" :class="{ 'toast--error': !isSuccess }">
+    <div :class="isSuccess ? 'icon-toast-success' : 'icon-toast-error'"></div>
+    <div class="toast__content">
+      {{ isSuccess ? MISAResoure.Toast.Success : MISAResoure.Toast.Error }}
     </div>
+  </div>
 </template>
 
 <script>
 export default {
-  name: 'BaseToast',
+  name: "BaseToast",
   props: {
-    msg: String
-  }
-}
+    msg: String,
+    isSuccess: {
+      type: Boolean,
+      default: true,
+    },
+  },
+};
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-
 </style>

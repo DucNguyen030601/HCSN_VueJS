@@ -1,15 +1,22 @@
 <template>
-  <div class="content">
+  <div
+    class="content"
+    v-keydown-ctrl-shift-D="openFormDelete"
+    v-keydown-ctrl-1="openFormAdd"
+  >
     <div class="content__toolbar">
       <h2>Ghi tăng tài sản</h2>
       <div class="toolbar__feature">
-        <button
-          class="btn btn--primary"
-          style="width: 110px; height: 36px"
-          @click="openForm(MISAEnum.FormState.Add)"
-        >
-          Thêm
-        </button>
+        <div class="tooltip">
+          <button
+            class="btn btn--primary"
+            style="width: 110px; height: 36px"
+            @click="openForm(MISAEnum.FormState.Add)"
+          >
+            Thêm
+          </button>
+          <span class="tooltip__text">Thêm (CTRL + 1)</span>
+        </div>
 
         <div class="drop-option" v-click-outside="hideDropOption">
           <button
@@ -35,22 +42,21 @@
     </div>
     <splitpanes
       horizontal
-      class="content-all"
+      class="content-all default-theme"
       :class="{ 'content-all__full': isShowContentTop }"
     >
       <pane :size="sizeContentTop" class="content-top">
         <div class="content__toolbar">
-          <div class="toolbar__filter">
-            <div class="txt-box--filter">
-              <div class="icon-search"></div>
-              <input
-                class="txt-box"
-                placeholder="Tìm kiếm theo số chứng từ, nội dung"
-                @keydown="stateKeyDown($event)"
-                v-model="filterIncrement"
-              />
-            </div>
-          </div>
+          <input-text-filter-vue
+            placeholder="Tìm kiếm theo số chứng từ, nội dung"
+            ref="filterIncrement"
+            name="filterIncrement"
+            v-model="filterIncrement"
+            :sizeH="35"
+            :sizeW="300"
+            :isFocus="true"
+            @onFocusInputListener="onFocusInputListener"
+          />
           <div class="toolbar__feature">
             <div class="tooltip">
               <button
@@ -60,7 +66,7 @@
               >
                 <div class="icon-bin--red"></div>
               </button>
-              <span class="tooltip__text">Xoá</span>
+              <span class="tooltip__text">Xoá (CTRL + SHIFT + D)</span>
             </div>
 
             <div class="tooltip">
@@ -80,26 +86,32 @@
         </div>
 
         <base-table-vue
-          size="calc(100% - 76px)"
+          sizeH="calc(100% - 76px)"
           v-model="modelFixedAssetIncrement"
           v-model:page="page"
           v-model:pageSize="pageSize"
-          :hasContextMenu="false"
           :totalPage="totalPage"
           :totalRecord="totalRecord"
-          :arrPage="arrPage"
+          :arrPage="MISAResoure.Table.FixedAssetIncrement.Pages.ArrPage"
           :moreInfo="moreInfo"
           @openForm="openForm"
           @selectedCheckBox="selectedCheckBox"
           @selectedRow="selectedRow"
-          :columns="columns1"
-          :cells="cells1"
+          :columns="MISAResoure.Table.FixedAssetIncrement.Columns"
+          :cells="MISAResoure.Table.FixedAssetIncrement.Cells"
           send="fixed_asset_increment_id"
           :get="['fixed_asset_increment_id']"
           :isBorder="false"
           :totalCellPaging="5"
-          :isShowButtonFeature="['Edit', 'Delete']"
+          :buttonFeatureTable="
+            MISAResoure.Table.FixedAssetIncrement.ButtonFeatureTable
+          "
           ref="tableFixedAssetIncrement"
+          name="tableFixedAssetIncrement"
+          :itemFeatureContextMenu="
+            MISAResoure.Table.FixedAssetIncrement.ItemFeatureContextMenu
+          "
+          @onFocusTableListener="onFocusInputListener"
         />
       </pane>
       <pane :size="sizeContentBottom" class="content-bottom">
@@ -119,15 +131,20 @@
           </div>
         </div>
         <base-table-vue
-          size="calc(100% - 50px)"
-          :hasContextMenu="false"
+          sizeH="calc(100% - 50px)"
           v-model="modelFixedAssetIncrementDetail"
-          :columns="columns2"
-          :cells="cells2"
+          :columns="MISAResoure.Table.FixedAssetIncrementDetail.Columns"
+          :cells="MISAResoure.Table.FixedAssetIncrementDetail.Cells"
           send="fixed_asset_id"
           :isBorder="false"
           :isShowFooter="false"
           ref="tableFixedAssetIncrementDetail"
+          name="tableFixedAssetIncrementDetail"
+          @onFocusTableListener="onFocusInputListener"
+        />
+        <loading-process-vue
+          v-show="isLoadingProcessComponent"
+          :isLoadingProcessComponent="true"
         />
       </pane>
     </splitpanes>
@@ -142,12 +159,13 @@
     v-if="isShowFormFixedAssetIncrementDetail"
     @closeForm="closeForm"
     :fixedAssetIncrement="fixedAssetIncrement"
+    :fixedAssetIncrementDetail="modelFixedAssetIncrementDetail"
     :title="titleForm"
     :state="state"
     @load="loadPage"
   />
 
-  <base-toast-vue v-if="isShowToast" />
+  <base-toast-vue v-if="isShowToast" :isSuccess="isSuccessToast" />
 </template>
 
 <script>
@@ -163,101 +181,33 @@ export default {
   data() {
     return {
       modelFixedAssetIncrementDetail: [], //lấy danh sách tài sản ghi tăng
+      modelFixedAssetIncrement: [], //lấy danh sách ghi tăng
       fixedAssetIncrement: {}, //gán các giá trị của tài sản đề gửi sang form chi tiết
       fixedAssetIncrementId: null, //gán id tài sản lúc đầu, lần sau dùng nếu khác id -> call api
-      fixedAssetIncrementCode: null,
+      fixedAssetIncrementCode: null, // mã tài sản ghi tăng lần đầu gọi api lấy tài sản
+      newFixedAssetIncrementCode: null, //mã tài sản mới cho tài sản lần đầu gọi api lấy mã mới
       state: null,
-      isShowFormFixedAssetIncrementDetail: !true,
+      isShowFormFixedAssetIncrementDetail: false,
+      statusShowForm: true, //trạng thái form khi call api
       isLoadingProcess: false,
+      isLoadingProcessComponent: false,
       isShowDropOption: false,
       isShowContentTop: false,
       isShowToast: false,
+      isSuccessToast: true,
       sizeContentTop: 60,
       sizeContentBottom: 40,
-      columns1: [
-        { type: "checkbox", width: 39, isResizing: false },
-        { name: "STT", width: 52, isResizing: false, tooltip: "Số thứ tự" },
-        { name: "Số chứng từ", width: 152, isResizing: true },
-        {
-          name: "Ngày chứng từ",
-          width: 200,
-          isResizing: true,
-          align: "center",
-        },
-        {
-          name: "Ngày ghi tăng",
-          width: 200,
-          isResizing: true,
-          align: "center",
-        },
-        {
-          name: "Tổng nguyên giá",
-          width: 200,
-          isResizing: true,
-          align: "right",
-        },
-        { name: "Nội dung", width: 635, isResizing: false },
-        { name: "", width: 104, isResizing: false },
-      ],
-      cells1: [
-        { type: "checkbox" },
-        { type: "sort" },
-        { name: "fixed_asset_increment_code" },
-        {
-          name: "production_year",
-          align: "center",
-          type: "date",
-          format: "dd/mm/yyyy",
-        },
-        {
-          name: "increment_date",
-          align: "center",
-          type: "date",
-          format: "dd/mm/yyyy",
-        },
-        { name: "cost", align: "right", type: "money" },
-        { name: "description" },
-      ],
-      columns2: [
-        { name: "STT", width: 52, isResizing: false, tooltip: "Số thứ tự" },
-        { name: "Mã tài sản", width: 200, isResizing: true },
-        { name: "Tên tài sản", width: 200, isResizing: true },
-        { name: "Bộ phận sử dụng", width: 241, isResizing: true },
-        { name: "Nguyên giá", width: 205, isResizing: false, align: "right" },
-        {
-          name: "HM/KH luỹ kế",
-          width: 205,
-          isResizing: false,
-          tooltip: "Hao mòn/Khấu hao luỹ kế",
-          align: "right",
-        },
-        {
-          name: "Giá trị còn lại",
-          width: 205,
-          isResizing: false,
-          align: "right",
-        },
-      ],
-      cells2: [
-        { type: "sort" },
-        { name: "fixed_asset_code" },
-        { name: "fixed_asset_name" },
-        { name: "department_name" },
-        { name: "cost", align: "right", type: "money" },
-        { name: "accumulated_depreciation", align: "right", type: "money" },
-        { name: "residual_value", align: "right", type: "money" },
-      ],
       page: 1,
-      pageSize: 20,
+      pageSize: this.MISAResoure.Table.FixedAssetIncrement.Pages.PageSize,
       totalPage: 1,
       totalRecord: 0,
-      arrPage: ["10", "20", "30", "50", "100"],
       moreInfo: [0],
       filterIncrement: "",
       fixedAssetIncrements: [], //lưu dữ liệu các checkbox từ table
       fixedAssetIncrementIdRow: null, //lưu id của dòng khi chọn xoá
       isShowDialog: false, //hiện dialog
       index: null, //Lưu chỉ số dòng khi mở form
+      focusName: null, //lưu tên các component để focus
     };
   },
   async created() {
@@ -266,44 +216,84 @@ export default {
       this.page,
       this.pageSize
     );
+
     await this.getFixedAssetIncrements(api);
     this.selectedRow(this.modelFixedAssetIncrement[0].fixed_asset_increment_id);
+    this.$refs.tableFixedAssetIncrement.active = 0;
   },
   methods: {
+    /**
+     * @description:Sự kiện focus từng các component
+     * @param: {any}
+     * Author: NNduc (21/04/2023)
+     */
+    onFocusInputListener: function (name) {
+      this.focusName = name;
+    },
     /**
      * Làm mới lại trang
      * Author NNduc(13/03/2023)
      */
-    loadPage: async function () {
+    loadPage: async function (isSuccess = true) {
       //Đóng dialog
       this.isShowDialog = false;
       //Đóng form
       this.isShowFormFixedAssetIncrementDetail = false;
+      //Set trạng thái toast
+      this.isSuccessToast = isSuccess;
       //Show toast
       this.isShowToast = true;
-      //đặt lại các trường về mặc định
-      this.fixedAssetIncrementId = null;
-      this.page = 1;
-      this.filterIncrement = "";
-      const api = this.MISAResoure.API.FixedAssetIncrement.Get(
-        this.filterIncrement,
-        this.page,
-        this.pageSize
-      );
+      //nếu thành công reset lại table
+      if (isSuccess) {
+        //đặt lại các trường về mặc định
+        this.fixedAssetIncrementId = null;
+        this.newFixedAssetIncrementCode = null;
+        this.page = 1;
+        this.filterIncrement = "";
+        const api = this.MISAResoure.API.FixedAssetIncrement.Get(
+          this.filterIncrement,
+          this.page,
+          this.pageSize
+        );
 
-      //lấy dữ liệu
-      await this.getFixedAssetIncrements(api);
-      this.selectedRow(
-        this.modelFixedAssetIncrement[0].fixed_asset_increment_id
-      );
-      //làm mới style
-      this.$refs.tableFixedAssetIncrement.refresh();
-
+        //lấy dữ liệu
+        await this.getFixedAssetIncrements(api);
+        this.selectedRow(
+          this.modelFixedAssetIncrement[0].fixed_asset_increment_id
+        );
+        //làm mới style
+        this.$refs.tableFixedAssetIncrement.refresh();
+        this.$refs.tableFixedAssetIncrement.active = 0;
+        this.$refs[this.focusName].autoFocusComplete();
+      }
       setTimeout(() => {
         this.isShowToast = false;
       }, 1500);
     },
 
+    /**
+     * @description: Sự kiện khi ấn nút Ctrl 1 -> Mở form thêm
+     * @param: {any}
+     * Author: NNduc (14/05/2023)
+     */
+    openFormAdd: function () {
+      //nếu trong trạng thái mở form chi tiết
+      if (this.isShowFormFixedAssetIncrementDetail) return;
+      this.openForm(this.MISAEnum.FormState.Add);
+    },
+    /**
+     * @description: Sự kiện khi ấn nút Ctrl Shift D -> Mở form xoá
+     * @param: {any}
+     * Author: NNduc (14/05/2023)
+     */
+    openFormDelete: function () {
+      if (
+        this.fixedAssetIncrements.length < 2 ||
+        this.isShowFormFixedAssetIncrementDetail
+      )
+        return;
+      this.removefixedAssetIncrements();
+    },
     /**
      * Hàm mở form
      * Author NNduc (3/3/2023)
@@ -329,8 +319,13 @@ export default {
           this.fixedAssetIncrement.increment_date = new Date();
           this.fixedAssetIncrement.production_year = new Date();
           //lấy mã code mới
+          //nếu mã code mới chưa được lấy -> gọi api
+          if (!this.newFixedAssetIncrementCode) {
+            this.newFixedAssetIncrementCode =
+              await this.getNewFixedAssetIncrementCode();
+          }
           this.fixedAssetIncrement.fixed_asset_increment_code =
-            await this.getNewFixedAssetIncrementCode();
+            this.newFixedAssetIncrementCode;
         } else if (state == this.MISAEnum.FormState.Edit) {
           //trạng thái sửa
           //nếu id khác id ban đầu thì lấy tài sản theo id mới, và gán mã code cũ (trong trường hợp trạng thái là nhân bản sẽ gán mã code mới)
@@ -338,23 +333,13 @@ export default {
           if (this.fixedAssetIncrementId != id) {
             this.fixedAssetIncrementId = id;
             this.fixedAssetIncrement = await this.getFixedAssetIncrementId(id);
+            await this.selectedRow(id);
             this.fixedAssetIncrementCode =
               this.fixedAssetIncrement.fixed_asset_increment_code;
           }
           this.fixedAssetIncrement.fixed_asset_increment_code =
             this.fixedAssetIncrementCode;
           this.titleForm = this.MISAResoure.Form.FixedAssetIncrement.Title.Edit;
-        } else {
-          if (this.fixedAssetIncrementId != id) {
-            this.fixedAssetIncrementId = id;
-            this.fixedAssetIncrement = await this.getFixedAssetIncrementId(id);
-            this.fixedAssetIncrementCode =
-              this.fixedAssetIncrement.fixed_asset_increment_code;
-          }
-          this.fixedAssetIncrement.fixed_asset_increment_code =
-            await this.getNewFixedAssetIncrementCode();
-          this.titleForm =
-            this.MISAResoure.Form.FixedAssetIncrement.Title.Clone;
         }
         this.fixedAssetIncrement.increment_date = this.MISACommon.formatDate(
           this.fixedAssetIncrement.increment_date
@@ -364,7 +349,7 @@ export default {
         );
         this.state = state;
         this.index = index;
-        this.isShowFormFixedAssetIncrementDetail = true;
+        this.isShowFormFixedAssetIncrementDetail = this.statusShowForm;
       } else {
         //lưu id để xoá
         this.fixedAssetIncrementIdRow =
@@ -388,17 +373,29 @@ export default {
      * @param: {any}
      * Author: NNduc (04/05/2023)
      */
-    closeForm: function (totalCost) {
+    closeForm: async function (isLoadForm) {
+      if (isLoadForm) {
+        if (this.state == this.MISAEnum.FormState.Edit) {
+          await this.selectedRow(
+            this.modelFixedAssetIncrement[this.index].fixed_asset_increment_id
+          );
+          let cost = this.modelFixedAssetIncrementDetail.reduce(
+            (accumulator, object) => {
+              return accumulator + object.cost;
+            },
+            0
+          );
+          this.moreInfo = [
+            this.moreInfo[0] -
+              this.modelFixedAssetIncrement[this.index].cost +
+              cost,
+          ];
+          this.modelFixedAssetIncrement[this.index].cost = cost;
+        }
+      }
       this.isShowFormFixedAssetIncrementDetail =
         !this.isShowFormFixedAssetIncrementDetail;
-      this.$refs.tableFixedAssetIncrement.autoFocusComplete();
-      if (this.state == this.MISAEnum.FormState.Edit) {
-        this.moreInfo[0] =
-          this.moreInfo[0] -
-          this.modelFixedAssetIncrement[this.index].cost +
-          totalCost;
-        this.modelFixedAssetIncrement[this.index].cost = totalCost;
-      }
+      this.$refs[this.focusName].autoFocusComplete();
     },
 
     /**
@@ -424,26 +421,6 @@ export default {
     },
 
     /**
-     * Hàm xử lý nhấn enter để tìm kiếm tài sản
-     * Author NNduc(13/3/2023)
-     */
-    stateKeyDown: function (evt) {
-      //lấy code key của sự kiện keydown
-      var charCode = evt.keyCode;
-      //nếu ấn enter sẽ lấy giá trị của text box
-      if (charCode == this.MISAEnum.KeySate.Enter) {
-        this.page = 1;
-        const api = this.MISAResoure.API.FixedAssetIncrement.Get(
-          this.filterIncrement,
-          this.page,
-          this.pageSize
-        );
-        //lấy dữ liệu
-        this.getFixedAssetIncrements(api);
-      }
-    },
-
-    /**
      * @description: Sử lý sự kiện khi change checkbox ở table
      * @param: {any}
      * Author: NNduc (29/04/2023)
@@ -457,20 +434,21 @@ export default {
      * @param: {any}
      * Author: NNduc (18/04/2023)
      */
-    selectedRow: function (fixed_asset_increment_id) {
+    selectedRow: async function (fixed_asset_increment_id) {
+      if (this.isShowDialog) return;
+      this.isLoadingProcessComponent = true;
       const api = this.MISAResoure.API.FixedAssetIncrementDetail.Get(
         fixed_asset_increment_id
       );
-      this.axios
+      await this.axios
         .post(api)
         .then((response) => {
+          this.isLoadingProcessComponent = false;
           this.modelFixedAssetIncrementDetail = response.data.Data;
         })
         .catch((e) => {
-          this.isLoadingProcess = false;
-          let title = this.MISAResoure.Dialog.Title.Warning + "</br>" + e;
-          let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-          this.showDialog(title, titleBtnPr);
+          this.isLoadingProcessComponent = false;
+          this.showDialogError(e);
         });
     },
     /**
@@ -495,9 +473,7 @@ export default {
         })
         .catch((e) => {
           this.isLoadingProcess = false;
-          let title = this.MISAResoure.Dialog.Title.Warning + "</br>" + e;
-          let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-          this.showDialog(title, titleBtnPr);
+          this.showDialogError(e);
         });
     },
 
@@ -553,42 +529,64 @@ export default {
       var s = "";
       const api =
         this.MISAResoure.API.FixedAssetIncrement.NewFixedAssetIncrementCode;
-      // const axios = await ;
       this.isLoadingProcess = true;
       await this.axios
         .get(api)
         .then((response) => {
           this.isLoadingProcess = false;
+          this.statusShowForm = true;
           s = response.data;
         })
         .catch((e) => {
           this.isLoadingProcess = false;
-          let title = this.MISAResoure.Dialog.Title.Warning + "</br>" + e;
-          let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-          this.showDialog(title, titleBtnPr);
+          this.statusShowForm = false;
+          this.showDialogError(e);
         });
       return s;
     },
 
     getFixedAssetIncrementId: async function (fixedAssetIncrementId) {
       var fixedAssetIncrement = {};
+      this.isLoadingProcess = true;
       const api = this.MISAResoure.API.FixedAssetIncrement.GetId(
         fixedAssetIncrementId
       );
-      this.isLoadingProcess = true;
       await this.axios
         .get(api)
         .then((response) => {
-          fixedAssetIncrement = response.data;
           this.isLoadingProcess = false;
+          this.statusShowForm = true;
+          fixedAssetIncrement = response.data;
         })
         .catch((e) => {
           this.isLoadingProcess = false;
-          let title = this.MISAResoure.Dialog.Title.Warning + "</br>" + e;
-          let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-          this.showDialog(title, titleBtnPr);
+          this.statusShowForm = false;
+          this.showDialogError(e);
         });
       return fixedAssetIncrement;
+    },
+
+    /**
+     * @description: Hiện dialog lỗi
+     * @param: {any}
+     * Author: NNduc (10/04/2023)
+     */
+    showDialogError: function (e) {
+      //nếu không có kết nối mạng
+      if (e.code == "ERR_NETWORK") {
+        this.showDialog(
+          this.MISAResoure.Dialog.Title.ErrorNetwork,
+          this.MISAResoure.Dialog.Button.Close
+        );
+      } else {
+        let errorCode = e.response.data.ErrorCode;
+        if (errorCode == this.MISAEnum.ErrorCode.Exception) {
+          this.showDialog(
+            this.MISAResoure.Dialog.Title.Warning,
+            this.MISAResoure.Dialog.Button.Close
+          );
+        } else this.loadPage(false);
+      }
     },
 
     /**
@@ -627,7 +625,7 @@ export default {
         choose == this.MISAResoure.Dialog.Button.Yes
       ) {
         this.isShowDialog = false;
-        this.$refs.tableFixedAssetIncrement.autoFocusComplete();
+        this.$refs[this.focusName].autoFocusComplete();
       } else {
         //Xử lý dialog form xoá
         this.isLoadingProcess = true;
@@ -645,10 +643,7 @@ export default {
             })
             .catch((e) => {
               this.isLoadingProcess = false;
-              console.log(e);
-              let title = this.MISAResoure.Dialog.Title.DeleteWarning;
-              let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-              this.showDialog(title, titleBtnPr);
+              this.showDialogError(e);
             });
         } else {
           const fixedAssetIncrementIds = this.fixedAssetIncrements.map(
@@ -667,18 +662,35 @@ export default {
             })
             .catch((e) => {
               this.isLoadingProcess = false;
-              console.log(e);
-              let title = this.MISAResoure.Dialog.Title.DeleteALotWarning(
-                this.fixedAssetIncrements.length
-              );
-              let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-              this.showDialog(title, titleBtnPr);
+              this.showDialogError(e);
             });
         }
       }
     },
   },
   watch: {
+    /**
+     * Hàm xử lý nhấn enter để tìm kiếm tài sản
+     * Author NNduc(13/3/2023)
+     */
+    filterIncrement: async function (nVal) {
+      this.page = 1;
+      const api = this.MISAResoure.API.FixedAssetIncrement.Get(
+        nVal,
+        this.page,
+        this.pageSize
+      );
+      //lấy dữ liệu
+      await this.getFixedAssetIncrements(api);
+      if (!this.modelFixedAssetIncrement.length)
+        this.modelFixedAssetIncrementDetail = new Array();
+      else {
+        this.selectedRow(
+          this.modelFixedAssetIncrement[0].fixed_asset_increment_id
+        );
+        this.$refs.tableFixedAssetIncrement.active = 0;
+      }
+    },
     /**
      * Lấy dữ liệu tương ứng khi thay đổi giá trị trang
      * Author NNduc (13/3/2023)
@@ -690,14 +702,18 @@ export default {
         nVal,
         this.pageSize
       );
-      this.getFixedAssetIncrements(api);
+      await this.getFixedAssetIncrements(api);
+      this.selectedRow(
+        this.modelFixedAssetIncrement[0].fixed_asset_increment_id
+      );
+      this.$refs.tableFixedAssetIncrement.active = 0;
     },
     /**
      * Lấy dữ liệu tương ứng khi thay đổi giá trị page size
      * Author NNduc (13/3/2023)
      * @param {*} nVal giá trị mới lúc thay đổi
      */
-    pageSize: function (nVal) {
+    pageSize: async function (nVal) {
       //truyền tham số vào đường dẫn api;
       const api = this.MISAResoure.API.FixedAssetIncrement.Get(
         this.filterIncrement,
@@ -705,7 +721,11 @@ export default {
         nVal
       );
       //lấy dữ liệu từ api
-      this.getFixedAssetIncrements(api);
+      await this.getFixedAssetIncrements(api);
+      this.selectedRow(
+        this.modelFixedAssetIncrement[0].fixed_asset_increment_id
+      );
+      this.$refs.tableFixedAssetIncrement.active = 0;
     },
   },
 };
@@ -713,16 +733,8 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
-.splitpanes--horizontal > .splitpanes__splitter {
-  background: url("../../assets/icon/icon_draggable.png");
-  width: 25px;
-  height: 25px;
-  cursor: row-resize;
-  margin-left: 50%;
-  background-position: center;
-  background-size: contain;
-  z-index: 3;
-  margin-bottom: -15px;
+.splitpanes.default-theme .splitpanes__pane {
+  background-color: #ffff !important;
 }
 .content-all.content-all__full > .splitpanes__splitter {
   display: none;
@@ -734,6 +746,7 @@ export default {
 }
 
 .content-bottom {
+  position: relative;
   background-color: white;
 }
 

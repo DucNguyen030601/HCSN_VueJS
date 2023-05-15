@@ -1,5 +1,6 @@
 .dropdown {
     position: relative;
+    font-size: 14px;
 }
 .dropdown__select {
     width: 100%;
@@ -44,7 +45,6 @@
     display: block;
 }
 .dropdown__menu .menu__item {
-    font-size: 15px;
     padding: 8px 8px 8px 32px;
     display: flex;
     border-radius: 4px;

@@ -21,7 +21,9 @@
       tabindex="-1"
     />
   </div>
-  <div class="txt--error" style="color: red" v-if="isValid && txtValid!=''">{{ txtValid }}</div>
+  <div class="txt--error" style="color: red" v-if="isValid && txtValid != ''">
+    {{ txtValid }}
+  </div>
 </template>
 
 <script>
@@ -31,10 +33,10 @@ export default {
     type: String,
     modelValue: String,
     lable: String,
-    placehoder: String,
+    placeholder: String,
     require: Boolean,
     disable: Boolean,
-    name: Object,
+    name: String,
   },
   created() {
     this.value = this.MISACommon.formatDateByType(this.modelValue, this.type);
@@ -78,7 +80,7 @@ export default {
       } else {
         this.value = this.MISACommon.formatDateByType(date, this.type);
         this.isValid = false;
-        this.txtValid='';
+        this.txtValid = "";
       }
       this.$emit("update:modelValue", this.parseDate(this.value));
     },
@@ -87,8 +89,8 @@ export default {
       if (charCode > 31 && (charCode < 47 || charCode > 57) && charCode) {
         evt.preventDefault();
       }
-      if (charCode == this.MISAEnum.KeySate.Enter) {
-        this.onBlurInput();
+      if (charCode == this.MISAEnum.KeyCode.Enter) {
+        this.$refs.inputDate.showPicker();
       }
     },
 
@@ -124,13 +126,13 @@ export default {
     onFocusInputListener: function () {
       this.$emit("onFocusInputListener", this.name);
     },
-    
+
     /**
      * @description: Hiện cảnh báo và hiện text khi người dùng sai thông tin
      * @param: {any}
      * Author: NNduc (29/04/2023)
      */
-    showTextValidate(){
+    showTextValidate() {
       this.$refs.input.blur();
       this.isValid = true;
       //this.txtValid = s;

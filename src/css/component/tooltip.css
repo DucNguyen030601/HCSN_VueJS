@@ -1,10 +1,11 @@
-.tooltip{
+.tooltip {
     position: relative;
     cursor: pointer;
     display: inline-block;
 }
-.tooltip .tooltip__text{
-    display: none;
+
+.tooltip .tooltip__text {
+    transform: scale(0);
     position: absolute;
     top: 110%;
     right: 50%;
@@ -15,12 +16,24 @@
     padding: 0 5px 0 5px;
     font-size: 13px;
     z-index: 2;
-    font-weight: normal;    
+    font-weight: normal;
 }
-.tooltip:hover .tooltip__text{
-    display: block;
+
+.tooltip:hover .tooltip__text {
+    transition: transform 0.3s;
+    transform: scale(1);
 }
-.tooltip--left .tooltip__text{
+
+.tooltip--right .tooltip__text {
     left: 50%;
     right: unset;
+}
+
+.tooltip.tooltip-table .tooltip__text {
+    white-space: normal;
+    right: auto;
+}
+
+.tooltip.tooltip-table.tooltip--disable:hover .tooltip__text{
+    display: none;
 }

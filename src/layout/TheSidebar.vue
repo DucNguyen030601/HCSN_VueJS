@@ -12,7 +12,7 @@
           <div :class="`${item.Icon}-bold`"></div>
 
           <div class="menu-item__list" v-if="isShowItemMenu">
-            <div class="tooltip tooltip--left" v-if="item.Tooltip">
+            <div class="tooltip tooltip--right" v-if="item.Tooltip">
               <h5>{{ item.Title }}</h5>
               <span class="tooltip__text">{{ item.Tooltip }}</span>
             </div>

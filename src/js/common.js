@@ -27,7 +27,7 @@ const MISACommon = {
      */
     convertMoneyToNum: function (s) {
         try {
-            if (s != '') return parseInt(s.replaceAll('.', ''));
+            if (s != '') return Number(s.replaceAll('.', ''));
             return NaN;
         }
         catch (Ex) {
@@ -120,6 +120,19 @@ const MISACommon = {
         }
 
         return true;
+    },
+    /**
+     * @description: 
+     * @param: {any}
+     * Author: NNduc (11/05/2023)
+     */
+     diffMonths(startDate,endDate = new Date()){
+        startDate = new Date(startDate);
+        endDate = new Date(endDate);
+        var value = (endDate.getFullYear() - startDate.getFullYear()) * 12;
+        value -= startDate.getMonth();
+        value += endDate.getMonth();
+        return value;
     }
 
 

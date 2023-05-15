@@ -31,7 +31,6 @@
           </div>
           <div class="content-body">
             <template v-for="(task, index) in tasks" :key="index">
-              
               <task-item-vue
                 :arrData="arrData"
                 :task="task"
@@ -42,7 +41,6 @@
                 @focusIndex="focusIndex"
                 ref="taskItem"
               />
-
             </template>
           </div>
         </div>
@@ -58,14 +56,22 @@
         </div>
       </div>
       <div class="task-form__footer">
-        <button
-          class="btn btn--primary"
-          style="width: 120px"
-          @click="btnOnClickSave"
-        >
-          Lưu
-        </button>
-        <button class="btn" style="width: 120px" @click="closeForm">Huỷ</button>
+        <div class="tooltip">
+          <button
+            class="btn btn--primary"
+            style="width: 120px"
+            @click="btnOnClickSave"
+          >
+            Lưu
+          </button>
+          <span class="tooltip__text">Lưu (CTRL + S)</span>
+        </div>
+        <div class="tooltip">
+          <button class="btn" style="width: 120px" @click="closeForm()">
+            Huỷ
+          </button>
+          <span class="tooltip__text">Huỷ (ESC)</span>
+        </div>
       </div>
     </div>
   </div>
@@ -74,9 +80,11 @@
     v-show="isShowDialog"
     @onChoose="btnOnClickChooseDialog"
   />
+  <loading-process-vue v-if="isLoadingProcess" />
 </template>
 
 <script>
+import MISACommon from "@/js/common";
 import TaskItemVue from "./TaskItem.vue";
 export default {
   name: "BaseTask",
@@ -96,7 +104,26 @@ export default {
       model: null,
       index: null, //lưu chỉ số của component task item để thực hiện gọi phương thức focus
       isShowDialog: false,
+      isLoadingProcess: false,
+      indexStateFocus: 0, //chỉ số để focus component
     };
+  },
+  watch: {
+    tasks: {
+      handler: function () {
+        this.$nextTick(function () {
+          try {
+            this.$refs.taskItem[this.indexStateFocus].focusName = "budgetName";
+            this.$refs.taskItem[this.indexStateFocus].focusInput();
+          } catch {
+            this.$refs.taskItem[this.indexStateFocus - 1].focusName =
+              "budgetName";
+            this.$refs.taskItem[this.indexStateFocus - 1].focusInput();
+          }
+        });
+      },
+      deep: true,
+    },
   },
   created() {
     this.EX_Tasks = this.modelValue.budget;
@@ -114,21 +141,45 @@ export default {
         return accumulator + (isNaN(object.cost) ? 0 : object.cost);
       }, 0);
     },
+
+    /**
+     * @description: Tính tổng số hao mòn khấu hao
+     * @param: {any}
+     * Author: NNduc (11/05/2023)
+     */
+    totalAccumulatedDepreciation: function () {
+      var diffMonths = MISACommon.diffMonths(this.model.production_year);
+      return Math.round(
+        ((this.model.depreciation_rate * this.totalCost) / 12) * diffMonths
+      );
+    },
+
+    /**
+     * @description:
+     * @param: {any}
+     * Author: NNduc (11/05/2023)
+     */
+    totalResidualValue: function () {
+      return this.totalCost - this.totalAccumulatedDepreciation < 0
+        ? 0
+        : this.totalCost - this.totalAccumulatedDepreciation;
+    },
   },
   methods: {
     focusIndex: function (index) {
       this.index = index;
     },
-
     addTask: function (index) {
       const item = {};
       item.budget_id = "";
       item.budget_name = "";
       item.cost = 0;
       this.tasks.splice(index + 1, 0, item);
+      this.indexStateFocus = index + 1;
     },
     removeTask: function (index) {
       this.tasks.splice(index, 1);
+      this.indexStateFocus = index;
     },
     validateForm: function () {
       var title = "";
@@ -183,21 +234,45 @@ export default {
           .then((response) => {
             this.isLoadingProcess = false;
             if (response) {
-              this.$emit("load", this.totalCost);
+              this.$emit("load", true, [
+                this.totalCost,
+                this.totalAccumulatedDepreciation,
+                this.totalResidualValue,
+              ]);
             }
           })
           .catch((e) => {
             this.isLoadingProcess = false;
-            let errorCode = e.response.data.ErrorCode;
             console.log(e);
-            this.showDialogError(errorCode);
+            //nếu không có kết nối mạng
+            if (e.code == "ERR_NETWORK") {
+              this.showDialog(
+                this.MISAResoure.Dialog.Title.ErrorNetwork,
+                this.MISAResoure.Dialog.Button.Close
+              );
+            } else {
+              let errorCode = e.response.data.ErrorCode;
+              if (errorCode == this.MISAEnum.ErrorCode.InvalidData) {
+                this.validateForm();
+              } else if (errorCode == this.MISAEnum.ErrorCode.Exception) {
+                this.showDialog(
+                  this.MISAResoure.Dialog.Title.Warning,
+                  this.MISAResoure.Dialog.Button.Close
+                );
+              } else {
+                this.$emit("load", false);
+              }
+            }
           });
       }
     },
     closeForm: function () {
       //nếu trong trạng thái sửa
       //kiểm tra hỏi có muốn thay đổi dữ liệu không? nếu có sẽ show cảnh báo
+      console.log(this.EX_Tasks);
+
       const NW_Budget = JSON.stringify(this.tasks);
+      console.log(NW_Budget);
       if (NW_Budget != this.EX_Tasks) {
         //gán các thông tin vào cảnh báo
         let title = this.MISAResoure.Dialog.Title.EditWarning;

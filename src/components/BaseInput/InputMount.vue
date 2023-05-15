@@ -2,10 +2,10 @@
   <label for="" v-if="lable"
     >{{ lable }} <span style="color: red" v-if="require">*</span></label
   >
-  <div class="txt-box--number">
+  <div class="txt-box--mount">
     <input
       class="txt-box txt-box-al--r"
-      type="number"
+      type="text"
       v-model.trim="value"
       :class="{ 'input-err': isValid, 'txt-box--disable': disable }"
       @blur="onBlurInputValidate"
@@ -13,10 +13,17 @@
       min="0"
       ref="input"
       @focus="onFocusInputListener"
+      @input="sendValue($event.target.value)"
+      @keydown.up.prevent="upValue"
+      @keydown.down.prevent="downValue"
+      @keypress="onlyNumberKey($event)"
     />
-    <div class="icon-ip-number"></div>
+    <div class="icon-dr-up" @click="upValue"></div>
+    <div class="icon-dr-down" @click="downValue"></div>
   </div>
-  <div class="txt--error" style="color: red" v-if="isValid && txtValid!=''">{{ txtValid }}</div>
+  <div class="txt--error" style="color: red" v-if="isValid && txtValid != ''">
+    {{ txtValid }}
+  </div>
 </template>
 
 <script>
@@ -26,10 +33,10 @@ export default {
     modelValue: Number,
     typeInput: String,
     lable: String,
-    placehoder: String,
+    placeholder: String,
     require: Boolean,
     disable: Boolean,
-    name:Object
+    name: String,
   },
   data() {
     return {
@@ -43,23 +50,60 @@ export default {
     //this.value = this.modelValue;
   },
   watch: {
-    value: function (nVal) {
-      this.$emit("update:modelValue", parseInt(nVal));
-      // this.$emit("update:modelValue", nVal);
-    },
     modelValue: function (nVal) {
-      this.value = this.setFormatValue(nVal);
+      this.value =
+        nVal.toString().length > 3 || isNaN(nVal)
+          ? this.MISACommon.formatMoney(nVal)
+          : this.setFormatValue(nVal);
       // this.value = nVal;
     },
   },
   methods: {
-           /**
-     * @description: Sự kiện focus để lấy name chuyển sang component cha 
+    /**
+     * @description: Gửi giá trị sang component con
+     * @param: {any}
+     * Author: NNduc (09/05/2023)
+     */
+    sendValue: function (nVal) {
+      if (nVal == "000") this.value = "00";
+      const amount =
+        nVal == "" || isNaN(this.MISACommon.convertMoneyToNum(nVal))
+          ? NaN
+          : this.MISACommon.convertMoneyToNum(nVal);
+      this.$emit("update:modelValue", amount);
+    },
+
+    /**
+     * @description:Xử lý sự kiện ấn núp lên để tăng giá trị
+     * @param: {any}
+     * Author: NNduc (09/05/2023)
+     */
+    upValue: function () {
+      if (this.value === "" || this.value == null || isNaN(this.value))
+        this.value = 0;
+      this.$refs.input.focus();
+      this.value = this.setFormatValue(++this.value);
+      this.$emit("update:modelValue", parseInt(this.value));
+    },
+    /**
+     * @description:Xử lý sự kiện để giảm giá trị xuống
+     * @param: {any}
+     * Author: NNduc (09/05/2023)
+     */
+    downValue: function () {
+      this.$refs.input.focus();
+      if (this.value == 0) return;
+      this.value = this.setFormatValue(--this.value);
+      this.$emit("update:modelValue", parseInt(this.value));
+    },
+
+    /**
+     * @description: Sự kiện focus để lấy name chuyển sang component cha
      * @param: {any}
      * Author: NNduc (21/04/2023)
      */
-    onFocusInputListener:function(){
-      this.$emit("onFocusInputListener",this.name);
+    onFocusInputListener: function () {
+      this.$emit("onFocusInputListener", this.name);
     },
 
     /**
@@ -68,14 +112,16 @@ export default {
      * Author: NNduc (06/04/2023)
      */
     onBlurInputValidate: function () {
-      if ((this.value === "" || this.value == null || isNaN(this.value)) && this.require) {
+      if (
+        (this.value === "" || this.value == null || isNaN(this.value)) &&
+        this.require
+      ) {
         this.isValid = true;
-        this.txtValid =
-          this.MISAResoure.Validate.Required(this.lable);
+        this.txtValid = this.MISAResoure.Validate.Required(this.lable);
       } else {
-        this.isValid = false
-        this.txtValid='';
-        }
+        this.isValid = false;
+        this.txtValid = "";
+      }
     },
     onlyNumberKey: function (evt) {
       // Only ASCII character in that range allowed
@@ -89,16 +135,16 @@ export default {
     },
     setFormatValue: function (value) {
       try {
-        let s = parseInt(value);
+        var s = "";
         if (value >= 0 && value < 10) {
           s = "0" + value;
-        }
+        } else s = value;
         return s;
       } catch {
         return "0";
       }
     },
-        /**
+    /**
      * @description: Focus cho input
      * @param: {any}
      * Author: NNduc (11/04/2023)
@@ -106,13 +152,13 @@ export default {
     autoFocusComplete: function () {
       this.$refs.input.focus();
     },
-    
+
     /**
      * @description: Hiện cảnh báo và hiện text khi người dùng sai thông tin
      * @param: {any}
      * Author: NNduc (29/04/2023)
      */
-    showTextValidate(){
+    showTextValidate() {
       this.$refs.input.blur();
       this.isValid = true;
       //this.txtValid = s;
@@ -123,7 +169,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-.input-err{
-   border: 1px solid red;
+.input-err {
+  border: 1px solid red;
 }
 </style>

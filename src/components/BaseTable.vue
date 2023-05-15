@@ -2,17 +2,18 @@
   <div
     class="table-section"
     ref="tableSection"
-    :class="{ 'table-border': isBorder}"
+    :class="{ 'table-border': isBorder }"
+    :style="{ height: sizeH, width: sizeW }"
   >
     <table
       ref="table"
       tabindex="0"
       @keydown="stateKeyDown($event)"
-      @click="$emit('onFocusRowTableListener', name)"
       @blur="isValid = false"
-      :class="{'table-error': isValid }"
+      :class="{ 'table-error': isValid }"
+      @focus="onFocusTableListener"
     >
-      <thead>
+      <thead @mouseleave="stopResize" @mouseup="stopResize">
         <tr>
           <template v-for="(column, index) in dColumns" :key="index">
             <th
@@ -23,6 +24,7 @@
                 ref="checkBoxTitle"
                 @change="stateCheckBoxes($event.target.checked)"
                 type="checkbox"
+                tabindex="-1"
               />
             </th>
             <th
@@ -32,29 +34,34 @@
                 'table__cell-right': column.align == 'right',
                 'table__cell-center': column.align == 'center',
               }"
-              @mousedown="startResize(index, $event)"
-              @mousemove="resize(index, $event)"
-              @mouseup="stopResize()"
+              @mousemove.prevent="resize($event)"
             >
-              <div class="tooltip tooltip--left" v-if="column.tooltip">
+              <div class="tooltip tooltip--right" v-if="column.tooltip">
                 {{ column.name }}
                 <span class="tooltip__text">{{ column.tooltip }}</span>
               </div>
               <span v-else>{{ column.name }}</span>
+              <span
+                class="column-resize"
+                v-show="column.isResizing"
+                @mousedown.prevent="startResize(index, $event)"
+              ></span>
             </th>
           </template>
         </tr>
       </thead>
-      <tbody>
+      <tbody :class="{ 'table-row--border-bottom': !isShowFooter }">
         <tr
+          @mousedown.left="selectedRow(index)"
           @contextmenu="showContextMenu($event, index)"
-          @mousedown.left="selectRow(index, $event.ctrlKey)"
+          @click="selectedRows(index, $event.ctrlKey)"
           v-for="(item, index) in modelValue"
           :key="index"
           :class="{
             'table-row-check': selectedItems[index],
             'table-row-active': index == active,
           }"
+          ref="trTable"
         >
           <template v-for="(cell, i) in cells" :key="i">
             <td v-if="cell.type == 'checkbox'">
@@ -62,6 +69,7 @@
                 type="checkbox"
                 ref="checkBoxItem"
                 @change="stateCheckBox($event.target.checked, index)"
+                tabindex="-1"
               />
             </td>
             <td
@@ -74,6 +82,7 @@
             </td>
             <td
               v-else-if="cell.type == 'money'"
+              :style="{ color: cell.color }"
               :class="{
                 'table__cell-right': cell.align == 'right',
                 'table__cell-center': cell.align == 'center',
@@ -83,6 +92,7 @@
               {{ MISACommon.formatMoney(item[cell.name]) }}
             </td>
             <td
+              :style="{ color: cell.color }"
               v-else-if="cell.type == 'date'"
               :class="{
                 'table__cell-right': cell.align == 'right',
@@ -94,50 +104,39 @@
             </td>
 
             <td
+              :style="{ color: cell.color }"
               v-else
               :class="{
                 'table__cell-right': cell.align == 'right',
                 'table__cell-center': cell.align == 'center',
               }"
-              @dblclick.stop="dblclickRowTable(item[send], index)"
+              @dblclick.stop="dblclickRowTable(item[send])"
             >
-              {{ item[cell.name] }}
+              <div class="tooltip tooltip-table">
+                <div class="cut" :style="{ width: dColumns[i].width + 'px' }">
+                  {{ item[cell.name] }}
+                </div>
+                <span class="tooltip__text">{{ item[cell.name] }}</span>
+              </div>
             </td>
           </template>
-          <td v-if="isShowButtonFeature" class="feature-button">
+          <td v-if="buttonFeatureTable" class="feature-button">
             <button
-              @click="openForm(MISAEnum.FormState.Edit, item[send], index)"
-              v-if="isShowButtonFeature.includes('Edit')"
+              tabindex="-1"
+              v-for="(button, i) in buttonFeatureTable"
+              :key="i"
+              @click="openForm(button.state, item[send])"
             >
               <div class="tooltip">
-                <div class="icon-edit"></div>
-                <span class="tooltip__text">Sửa</span>
-              </div>
-            </button>
-            <button
-              @click="openForm(MISAEnum.FormState.Clone, item[send], index)"
-              v-if="isShowButtonFeature.includes('Clone')"
-            >
-              <div class="tooltip">
-                <div class="icon-copy"></div>
-                <span class="tooltip__text">Nhân bản</span>
-              </div>
-            </button>
-            <button
-              @click="openForm(MISAEnum.FormState.Delete, item[send], index)"
-              v-if="isShowButtonFeature.includes('Delete')"
-            >
-              <div class="tooltip">
-                <div class="icon-bin--red"></div>
-                <span class="tooltip__text">Xoá</span>
+                <div :class="button.icon"></div>
+                <span class="tooltip__text">{{ button.name }}</span>
               </div>
             </button>
           </td>
         </tr>
-
         <tr v-if="modelValue.length == 0">
           <td :colspan="columns.length" class="table__cell-center">
-            Không có bản ghi nào.
+            <base-no-data-vue />
           </td>
         </tr>
       </tbody>
@@ -172,15 +171,20 @@
   </div>
   <base-contextmenu-vue
     v-show="isShowContextMenu"
-    v-if="hasContextMenu"
+    v-if="itemFeatureContextMenu"
     @closeContextMenu="this.isShowContextMenu = false"
+    :itemFeatureContextMenu="itemFeatureContextMenu"
     ref="contextMenu"
     @openForm="openForm"
   />
 </template>
 <script>
+import BaseNoDataVue from "./BaseNoData.vue";
 export default {
   name: "BaseTable",
+  components: {
+    BaseNoDataVue,
+  },
   props: {
     msg: String,
     modelValue: {
@@ -222,14 +226,11 @@ export default {
       type: Boolean,
       default: true,
     },
-    size: Object,
-    hasContextMenu: {
-      //hiện contextmenu
-      type: Boolean,
-      default: true,
-    },
-    isShowButtonFeature: Array, //hiện các button
-    name: Object,
+    sizeH: Object,
+    sizeW: Object,
+    itemFeatureContextMenu: Array, //hiện các item contextmenu
+    buttonFeatureTable: Array, //hiện các button table (thêm, sửa, xoá)
+    name: String,
   },
   created() {
     this.dPage = this.page;
@@ -245,12 +246,11 @@ export default {
       dColumns: [{}],
       selectedItems: [], //lưu mảng số lượng item của model
       isShowContextMenu: false,
-      index: -1, //lấy chỉ số của model khi mở contextmenu
       state: null, //trạng thái thêm, sửa, xoá, nhân bản
       lastSelectedRow: null, //lưu vị trí khi chọn nhiều Shift + Click
       active: -1, // lấy chỉ số index khi xuống dòng
-      focusName: null, //tên các phần tử muốn focus
       isValid: false, //kiểm tra validate
+      activeSelectedRow: -1, //lấy chỉ số
     };
   },
   watch: {
@@ -269,16 +269,43 @@ export default {
         this.refresh();
       });
     },
+    // dColumns: {
+    //   handler: function () {
+    //     if (this.$refs.trTable) {
+    //       const trTables = this.$refs.trTable;
+    //       const spans = trTables[0].querySelectorAll(".text-td");
+    //       //const cuts = trTables[0].querySelectorAll(".tooltip.tooltip-table");
+    //       for (let index = 0; index < spans.length; index++) {
+    //         // if (spans[index].offsetWidth < spans[index].scrollWidth) {
+    //         //   cuts[index].style.display = "block";
+    //         //   spans[index].style.display = "none";
+    //         // } else {
+    //         //   cuts[index].style.display = "none";
+    //         //   spans[index].style.display = "block";
+    //         // }
+    //         console.log(spans[1].offsetWidth +" - "+spans[1].scrollWidth)
+    //       }
+    //     }
+    //   },
+    //   deep: true,
+    // },
   },
   methods: {
+    /**
+     * @description: Sự kiện focus table
+     * @param: {any}
+     * Author: NNduc (15/05/2023)
+     */
+    onFocusTableListener: function () {
+      this.$emit("onFocusTableListener", this.name);
+    },
     /**
      * @description: Focus cho table
      * @param: {any}
      * Author: NNduc (11/04/2023)
      */
     autoFocusComplete: function () {
-      if (this.focusName) this.focusName.focus();
-      else this.$refs.table.focus();
+      this.$refs.table.focus();
     },
 
     /**
@@ -290,6 +317,24 @@ export default {
       this.$refs.table.blur();
       this.isValid = true;
     },
+    /**
+     * @description:
+     * @param: {any}
+     * Author: NNduc (12/05/2023)
+     */
+    scrollItem(position) {
+      if (position >= 0) {
+        var coordinatesY = 0;
+        for (let index = 0; index < position; index++) {
+          coordinatesY += this.$refs.trTable[index].offsetHeight;
+        }
+        this.$refs.tableSection.scrollTo({
+          top: coordinatesY,
+          left: 0,
+          behavior: "smooth",
+        });
+      }
+    },
 
     /**
      * @description: Xử lý sự kiện khi bấm xuống lên dòng table
@@ -297,28 +342,28 @@ export default {
      * Author: NNduc (02/04/2023)
      */
     stateKeyDown: function (evt) {
-      if (this.active == -1) return;
       var charCode = evt.keyCode;
       switch (charCode) {
-        case this.MISAEnum.KeySate.ArrowDown:
+        case this.MISAEnum.KeyCode.ArrowDown:
+          evt.preventDefault();
           if (this.active > this.modelValue.length - 2) {
             this.active = 0;
-            this.$refs.tableSection.scrollTop = 0;
-            evt.preventDefault();
           } else {
             this.active++;
           }
+          this.scrollItem(this.active);
           break;
-        case this.MISAEnum.KeySate.ArrowUp:
+        case this.MISAEnum.KeyCode.ArrowUp:
+          evt.preventDefault();
           if (this.active == 0) {
             this.active = this.modelValue.length - 1;
-            this.$refs.tableSection.scrollTop = this.$refs.tableSection.scrollHeight;
-            evt.preventDefault();
           } else {
             this.active--;
           }
+          this.scrollItem(this.active);
           break;
-        case this.MISAEnum.KeySate.Enter:
+        case this.MISAEnum.KeyCode.Enter:
+          evt.preventDefault();
           if (this.$refs.checkBoxTitle) {
             this.$refs.checkBoxItem[this.active].checked =
               !this.$refs.checkBoxItem[this.active].checked;
@@ -328,25 +373,40 @@ export default {
             );
           }
           break;
-        case this.MISAEnum.KeySate.Shift:
-          this.openForm(
-            this.MISAEnum.FormState.Delete,
-            this.modelValue[this.active][this.send],
-            this.active
-          );
-          break;
         default:
           break;
       }
-      if (this.$refs.checkBoxTitle)
-        this.focusName = this.$refs.checkBoxItem[this.active];
+      //Xử lý sự kiện SHORT KEY ->Sửa
+      if (evt.ctrlKey && charCode == this.MISAEnum.KeyCode.E) {
+        evt.preventDefault();
+        this.openForm(
+          this.MISAEnum.FormState.Edit,
+          this.modelValue[this.active][this.send]
+        );
+      }
+      //Xử lý sự kiện SHORT KEY ->Xoá
+      if (evt.ctrlKey && charCode == this.MISAEnum.KeyCode.D) {
+        evt.preventDefault();
+        this.openForm(
+          this.MISAEnum.FormState.Delete,
+          this.modelValue[this.active][this.send]
+        );
+      }
+      //Xử lý sự kiện SHORT KEY ->Xoá
+      if (evt.ctrlKey && charCode == this.MISAEnum.KeyCode.Number2) {
+        evt.preventDefault();
+        this.openForm(
+          this.MISAEnum.FormState.Clone,
+          this.modelValue[this.active][this.send]
+        );
+      }
     },
     /**
      * @description: Hàm xử lý sự kiện bấm Shift và click chuột để lấy nhiều dòng
      * @param: {index: chỉ số của modelvalue, là lấy sự kiện nhấn shift}
      * Author: NNduc (31/03/2023)
      */
-    selectRow(index, ctrlKey) {
+    selectedRows(index, ctrlKey) {
       if (ctrlKey && this.lastSelectedRow !== null) {
         let start = Math.min(this.lastSelectedRow, index);
         let end = Math.max(this.lastSelectedRow, index);
@@ -357,10 +417,16 @@ export default {
         this.$refs.checkBoxTitle[0].checked = this.isSateCheckBoxes();
         this.$emit("selectedCheckBox");
       }
-      if (this.$refs.checkBoxTitle)
-        this.focusName = this.$refs.checkBoxItem[this.active];
-      if (this.active != index)
+    },
+    /**
+     * @description:
+     * @param: {any}
+     * Author: NNduc (10/05/2023)
+     */
+    selectedRow: function (index) {
+      if (this.activeSelectedRow != index)
         this.$emit("selectedRow", this.modelValue[index][this.send]);
+      this.activeSelectedRow = index;
       this.active = index;
     },
 
@@ -383,14 +449,13 @@ export default {
       }
       //Kiểm tra nếu index khác -1 tức là đang trong trạng thái mở ContextMenu thì
       //Lấy tài sản theo id
-      if (this.state == this.MISAEnum.FormState.Delete && this.index != -1) {
+      if (this.state == this.MISAEnum.FormState.Delete) {
         let item = {};
         for (const getItem of this.get) {
-          item[getItem] = this.modelValue[this.index][getItem];
+          item[getItem] = this.modelValue[this.active][getItem];
         }
-        data.push(item);
+        data = [item];
         this.state = null;
-        this.index = -1;
       }
       return data;
     },
@@ -440,7 +505,7 @@ export default {
       }
       this.$emit("selectedCheckBox");
       // this.focusName = this.$refs.checkBoxItem[index];
-      //this.$emit("onFocusRowTableListener", this.name);
+      //this.$emit("onFocusTableListener", this.name);
     },
 
     /**
@@ -465,7 +530,7 @@ export default {
      * Author NNduc (3/3/2023)
      * @param {*} fixedAsset  tài sản
      */
-    dblclickRowTable: function (id, index) {
+    dblclickRowTable: function (id) {
       // const NW_FixedAsset = JSON.parse(JSON.stringify(fixedAsset));
       // NW_FixedAsset.purchase_date = this.MISACommon.formatDate(
       //   fixedAsset.purchase_date
@@ -473,25 +538,27 @@ export default {
       // NW_FixedAsset.production_year = this.MISACommon.formatDate(
       //   fixedAsset.production_year
       // );
-      this.$emit("openForm", this.MISAEnum.FormState.Edit, id, index);
+      this.$emit("openForm", this.MISAEnum.FormState.Edit, id);
     },
 
     /**
      * Hàm mở form
      * Author NNduc (3/3/2023)
      */
-    openForm: function (state, id, index) {
+    openForm: function (state, id) {
       this.state = state;
-      this.$emit("openForm", state, id, index);
+      this.$emit("onFocusTableListener", this.name);
+      this.$emit("openForm", state, id, this.active);
     },
 
     showContextMenu: function (e, index) {
-      if (this.hasContextMenu) {
+      if (this.itemFeatureContextMenu) {
         e.preventDefault();
+        this.selectedRow(index);
         this.$refs.contextMenu.offsetY = e.clientY;
         this.$refs.contextMenu.offsetX = e.clientX;
         this.$refs.contextMenu.id = this.modelValue[index][this.send];
-        this.index = index;
+        this.$refs.contextMenu.index = index;
         this.isShowContextMenu = true;
       }
     },
@@ -503,31 +570,29 @@ export default {
      */
     startResize: function (index, event) {
       //người dùng bấm chuột
-      //kiểm tra trạng thái column đấy có cho phép thay đổi kích thước không
       //nếu có sẽ thuộc tính thay đổi size bằng true
-      if (this.dColumns[index].isResizing) {
-        this.currentResizing = true;
-        this.dColumns[index].startX = event.clientX;
-      }
+      this.currentResizing = true;
+      this.indexCurrentResizing = index;
+      this.dColumns[this.indexCurrentResizing].startX = event.clientX;
     },
     stopResize: function () {
       //nếu người dùng nhả chuột thì cho không thay đổi nữa
       //và set mặc định các trường về ban đầu
-      if (this.currentResizing) {
-        this.currentResizing = false;
-      }
+      this.currentResizing = false;
+      this.indexCurrentResizing = -1;
     },
-    resize: function (index, event) {
+    resize: function (event) {
       //sự kiện khi người dùng kéo rê chuột
       //kiểm tra xem có cho phép thay đổi không
-      if (!this.currentResizing) return;
+      if (this.currentResizing) {
+        //ở đây sẽ lấy toạ độ X khi rê chuột -  toạ độ X  vị trí khi khi người dùng bấm chuột lần đầu
+        const delta =
+          event.clientX - this.dColumns[this.indexCurrentResizing].startX;
+        this.dColumns[this.indexCurrentResizing].width += delta;
 
-      //ở đây sẽ lấy toạ độ X khi rê chuột -  toạ độ X  vị trí khi khi người dùng bấm chuột lần đầu
-      const delta = event.clientX - this.dColumns[index].startX;
-      this.dColumns[index].width += delta;
-
-      //cập nhật toạ độ X  vị trí khi khi người dùng bấm chuột lần đầu
-      this.dColumns[index].startX = event.clientX;
+        //cập nhật toạ độ X  vị trí khi khi người dùng bấm chuột lần đầu
+        this.dColumns[this.indexCurrentResizing].startX = event.clientX;
+      }
     },
 
     /**
@@ -547,6 +612,23 @@ export default {
   mounted() {
     if (this.size) {
       this.$refs.tableSection.style.height = this.size;
+    }
+  },
+  updated() {
+    const trTables = this.$refs.trTable;
+    if (trTables) {
+      for (const tr of trTables) {
+        const tooltips = tr.querySelectorAll(".tooltip.tooltip-table");
+        const cuts = tr.querySelectorAll(".tooltip.tooltip-table .cut");
+        for (let index = 0; index < cuts.length; index++) {
+          if (cuts[index].offsetWidth < cuts[index].scrollWidth) {
+            tooltips[index].classList.remove("tooltip--disable");
+          } else {
+            if (!tooltips[index].classList.contains("tooltip--disable"))
+              tooltips[index].classList.add("tooltip--disable");
+          }
+        }
+      }
     }
   },
 };

@@ -7,7 +7,7 @@ import MISAResoure from "@/js/resoure";
 import MISACommon from "@/js/common";
 import MISAEnum from './js/enum';
 
-import {clickOutSide,esc,ctrlS,shift} from './js/directive';
+import {clickOutSide,esc,ctrlS,ctrl1,ctrlShiftD} from './js/directive';
 
 import BaseComboboxVue from "@/components/BaseCombobox.vue";
 import InputMoneyVue from '@/components/BaseInput/InputMoney.vue';
@@ -15,6 +15,7 @@ import InputRateVue from '@/components/BaseInput/InputRate.vue';
 import InputMountVue from '@/components/BaseInput/InputMount.vue';
 import InputNumberVue from '@/components/BaseInput/InputNumber.vue';
 import InputTextVue from '@/components/BaseInput/InputText.vue';
+import InputTextFilterVue from '@/components/BaseInput/InputTextFilter.vue';
 import InputDateVue from '@/components/BaseInput/InputDate.vue';
 import InputDateCustomVue from '@/components/BaseInput/InputDateCustom.vue';
 import BaseTableVue from '@/components/BaseTable.vue'
@@ -33,6 +34,7 @@ app.component('input-rate-vue',InputRateVue);
 app.component('input-mount-vue',InputMountVue);
 app.component('input-number-vue',InputNumberVue);
 app.component('input-text-vue',InputTextVue);
+app.component('input-text-filter-vue',InputTextFilterVue);
 app.component('input-date-vue',InputDateVue);
 app.component('input-date-custom-vue',InputDateCustomVue);
 
@@ -53,6 +55,7 @@ app.config.globalProperties.axios  = axios;
 app.directive('click-outside',clickOutSide); 
 app.directive('keydown-esc',esc);
 app.directive('keydown-ctrl-s',ctrlS); 
-app.directive('keydown-shift',shift); 
+app.directive('keydown-ctrl-1',ctrl1);
+app.directive('keydown-ctrl-shift-D',ctrlShiftD) 
 app.use(router)
 app.mount('#app')

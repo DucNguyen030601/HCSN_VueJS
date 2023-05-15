@@ -23,7 +23,7 @@ export default {
   props: {
     modelValue: String,
     lable: String,
-    placehoder: String,
+    placeholder: String,
     require: Boolean,
     disable: Boolean,
   },

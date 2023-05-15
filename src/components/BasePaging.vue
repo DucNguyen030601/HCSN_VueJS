@@ -7,11 +7,17 @@
       </span>
     </div>
 
-    <base-combobox-vue :typeUp="true" v-model="dPageSize" :arrData="arrPage" :isReadOnly="true" v-if="arrPage"/>
+    <base-combobox-vue
+      :typeUp="true"
+      v-model="dPageSize"
+      :arrData="arrPage"
+      :isReadOnly="true"
+      v-if="arrPage"
+    />
 
     <ul class="table-footer__pagging" v-if="totalPage">
       <li @click="previousPage" :class="{ disable: dPage == 1 }">
-        {{ "<" }}
+        <div class="icon-previous-page"></div>
       </li>
       <template v-for="(item, index) in pages" :key="index">
         <li
@@ -23,7 +29,7 @@
       </template>
 
       <li @click="nextPage" :class="{ disable: dPage == totalPage }">
-        {{ ">" }}
+        <div class="icon-next-page"></div>
       </li>
     </ul>
   </div>
@@ -78,9 +84,9 @@ export default {
       this.$emit("update:page", 1);
       this.dPage = 1;
     },
-    page:function(nVal){
-        this.dPage = nVal;
-    }
+    page: function (nVal) {
+      this.dPage = nVal;
+    },
   },
   methods: {
     getValue: function (val) {
@@ -120,6 +126,16 @@ export default {
 <style scoped>
 .disable {
   opacity: 0.5;
-  cursor: default;
+  cursor: not-allowed;
+}
+.icon-previous-page {
+  background: url("../assets/icon/qlts-icon.png") no-repeat -206px -248px;
+  width: 5px;
+  height: 8px;
+}
+.icon-next-page {
+  background: url("../assets/icon/qlts-icon.png") no-repeat -250px -248px;
+  width: 5px;
+  height: 8px;
 }
 </style>

@@ -9,7 +9,7 @@
     :class="{
       'input-err': isValid,
       'txt-box--disable': disable,
-      'placehoder-normal': stylePlacehoder == 'normal',
+      'placeholder-normal': styleplaceholder == 'normal',
     }"
     @blur="onBlurInputValidate"
     :disabled="disable"
@@ -17,8 +17,11 @@
     @input="sendValue($event.target.value)"
     ref="input"
     @focus="onFocusInputListener"
+    :maxlength="maxLength"
   />
-  <div class="txt--error" style="color: red" v-if="isValid && txtValid!=''">{{ txtValid }}</div>
+  <div class="txt--error" style="color: red" v-if="isValid && txtValid != ''">
+    {{ txtValid }}
+  </div>
 </template>
 
 <script>
@@ -32,11 +35,15 @@ export default {
       type: Boolean,
       default: true,
     },
-    placehoder: String,
-    stylePlacehoder:String,
+    placeholder: String,
+    styleplaceholder: String,
     require: Boolean,
     disable: Boolean,
-    name: Object,
+    name: String,
+    maxLength: {
+      type: Number,
+      default: 524288,
+    },
   },
   data() {
     return {
@@ -76,16 +83,18 @@ export default {
         nVal == "" || isNaN(this.MISACommon.convertMoneyToNum(nVal))
           ? NaN
           : this.MISACommon.convertMoneyToNum(nVal);
+      if(money==0) this.value = 0;
       this.$emit("update:modelValue", money);
+
     },
     onBlurInputValidate: function () {
       if ((this.value === "" || this.value == null) && this.require) {
         this.isValid = true;
         this.txtValid = this.MISAResoure.Validate.Required(this.lable);
       } else {
-        this.isValid = false
-        this.txtValid='';
-        }
+        this.isValid = false;
+        this.txtValid = "";
+      }
     },
     onlyNumberKey: function (evt) {
       // Only ASCII character in that range allowed
@@ -105,14 +114,14 @@ export default {
     autoFocusComplete: function () {
       this.$refs.input.focus();
     },
-    
+
     /**
      * @description: Hiện cảnh báo và hiện text khi người dùng sai thông tin
      * @param: {any}
      * Author: NNduc (29/04/2023)
      */
-    showTextValidate(){
-        this.$refs.input.blur();
+    showTextValidate() {
+      this.$refs.input.blur();
       this.isValid = true;
       //this.txtValid = s;
     },

@@ -6,7 +6,7 @@
         <div class="header__close" @click="closeForm">
           <div class="tooltip">
             <div class="icon-close-popup"></div>
-            <span class="tooltip__text">Đóng</span>
+            <span class="tooltip__text">Đóng (ESC)</span>
           </div>
         </div>
       </div>
@@ -17,7 +17,7 @@
             v-model.trim="model.fixed_asset_code"
             lable="Mã tài sản"
             :require="true"
-            placehoder="Nhập mã tài sản"
+            placeholder="Nhập mã tài sản"
             :isFocus="true"
             ref="fixedAssetCode"
             maxLength="100"
@@ -31,7 +31,7 @@
             v-model.trim="model.fixed_asset_name"
             lable="Tên tài sản"
             :require="true"
-            placehoder="Nhập tên tài sản"
+            placeholder="Nhập tên tài sản"
             ref="fixedAssetName"
             maxLength="255"
             name="fixedAssetName"
@@ -41,7 +41,7 @@
         <div class="grid__item">
           <base-combobox-vue
             lable="Mã bộ phận sử dụng"
-            placehoder="Chọn mã bộ phận sử dụng"
+            placeholder="Chọn mã bộ phận sử dụng"
             :require="true"
             :checkActive="true"
             :api="MISAResoure.API.Dept.Get"
@@ -65,7 +65,7 @@
         <div class="grid__item">
           <base-combobox-vue
             lable="Mã loại tài sản"
-            placehoder="Chọn mã loại tài sản"
+            placeholder="Chọn mã loại tài sản"
             :require="true"
             :checkActive="true"
             :api="MISAResoure.API.Cat.Get"
@@ -111,6 +111,7 @@
             :require="true"
             ref="cost"
             name="cost"
+            maxLength="25"
             @onFocusInputListener="onFocusInputListener"
           />
         </div>
@@ -169,16 +170,22 @@
         </div>
       </div>
       <div class="popup-form__footer">
-        <button
-          class="btn btn--primary"
-          style="width: 120px"
-          @click="btnOnClickSave"
-        >
-          Lưu
-        </button>
-        <button class="btn" style="width: 120px" @click="closeForm()">
-          Huỷ
-        </button>
+        <div class="tooltip">
+          <button
+            class="btn btn--primary"
+            style="width: 120px"
+            @click="btnOnClickSave"
+          >
+            Lưu
+          </button>
+          <span class="tooltip__text">Lưu (CTRL + S)</span>
+        </div>
+        <div class="tooltip">
+          <button class="btn" style="width: 120px" @click="closeForm()">
+            Huỷ
+          </button>
+          <span class="tooltip__text">Huỷ (ESC)</span>
+        </div>
       </div>
     </div>
   </div>
@@ -235,7 +242,7 @@ export default {
   },
   methods: {
     /**
-     * @description:
+     * @description:Sự kiện focus từng các component
      * @param: {any}
      * Author: NNduc (21/04/2023)
      */
@@ -258,11 +265,11 @@ export default {
      */
     validateForm: function () {
       var title = "";
-      if (!this.model.fixed_asset_id) {
+      if (!this.model.fixed_asset_code) {
         title = this.MISAResoure.Dialog.Title.ValidateRequired(
           this.MISAResoure.Form.FixedAsset.Lable.FixedAssetId
         );
-        this.focusName = "fixedAssetId";
+        this.focusName = "fixedAssetCode";
       } else if (!this.model.fixed_asset_name) {
         title = this.MISAResoure.Dialog.Title.ValidateRequired(
           this.MISAResoure.Form.FixedAsset.Lable.FixedAssetName
@@ -370,7 +377,9 @@ export default {
         this.state == this.MISAEnum.FormState.Clone
       ) {
         //gán các thông tin vào cảnh báo
-        let title = this.MISAResoure.Dialog.Title.CancelWarning(this.MISAResoure.Form.FixedAsset.Name);
+        let title = this.MISAResoure.Dialog.Title.CancelWarning(
+          this.MISAResoure.Form.FixedAsset.Name
+        );
         let titleBtnPr = this.MISAResoure.Dialog.Button.Cancel;
         let titleBtnOut = this.MISAResoure.Dialog.Button.No;
         this.showDialog(title, titleBtnPr, titleBtnOut);
@@ -392,14 +401,12 @@ export default {
             .then((response) => {
               this.isLoadingProcess = false;
               if (response) {
-                this.$emit("load");
+                this.$emit("load", true);
               }
             })
             .catch((e) => {
               this.isLoadingProcess = false;
-              let errorCode = e.response.data.ErrorCode;
-              console.log(e);
-              this.showDialogError(errorCode);
+              this.showDialogError(e);
             });
         } else if (this.state == this.MISAEnum.FormState.Edit) {
           //Xử lý dialog form sửa
@@ -413,14 +420,12 @@ export default {
             .then((response) => {
               this.isLoadingProcess = false;
               if (response) {
-                this.$emit("load");
+                this.$emit("load", true);
               }
             })
             .catch((e) => {
               this.isLoadingProcess = false;
-              let errorCode = e.response.data.ErrorCode;
-              console.log(e);
-              this.showDialogError(errorCode);
+              this.showDialogError(e);
             });
         } else {
           //Xử lý dialog form nhân bản
@@ -431,14 +436,12 @@ export default {
             .then((response) => {
               this.isLoadingProcess = false;
               if (response) {
-                this.$emit("load");
+                this.$emit("load", true);
               }
             })
             .catch((e) => {
               this.isLoadingProcess = false;
-              let errorCode = e.response.data.ErrorCode;
-              console.log(e);
-              this.showDialogError(errorCode);
+              this.showDialogError(e);
             });
         }
       }
@@ -449,23 +452,35 @@ export default {
      * @param: {any}
      * Author: NNduc (10/04/2023)
      */
-    showDialogError: function (errorCode) {
-      var title = "";
-      if (errorCode == this.MISAEnum.ErrorCode.DulicateCode) {
-        title = this.MISAResoure.Dialog.Title.DulicateCode(
-          this.MISAResoure.Form.FixedAsset.Lable.FixedAssetCode,
-          this.model.fixed_asset_code
+    showDialogError: function (e) {
+      console.log(e);
+      //nếu không có kết nối mạng
+      if (e.code == "ERR_NETWORK") {
+        this.showDialog(
+          this.MISAResoure.Dialog.Title.ErrorNetwork,
+          this.MISAResoure.Dialog.Button.Close
         );
-        this.focusName = "fixedAssetCode";
-        this.$refs[this.focusName].showTextValidate();
-        let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-        this.showDialog(title, titleBtnPr);
-      } else if (errorCode == this.MISAEnum.ErrorCode.InvalidData) {
-        this.validateForm();
       } else {
-        title = this.MISAResoure.Dialog.Title.Warning;
-        let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-        this.showDialog(title, titleBtnPr);
+        let errorCode = e.response.data.ErrorCode;
+        if (errorCode == this.MISAEnum.ErrorCode.DulicateCode) {
+          let title = this.MISAResoure.Dialog.Title.DulicateCode(
+            this.MISAResoure.Form.FixedAsset.Lable.FixedAssetCode,
+            this.model.fixed_asset_code
+          );
+          this.focusName = "fixedAssetCode";
+          this.$refs[this.focusName].showTextValidate();
+          let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
+          this.showDialog(title, titleBtnPr);
+        } else if (errorCode == this.MISAEnum.ErrorCode.InvalidData) {
+          this.validateForm();
+        } else if (errorCode == this.MISAEnum.ErrorCode.Exception) {
+          this.showDialog(
+            this.MISAResoure.Dialog.Title.Warning,
+            this.MISAResoure.Dialog.Button.Close
+          );
+        } else {
+          this.$emit("load", false);
+        }
       }
     },
 

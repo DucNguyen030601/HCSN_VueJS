@@ -1,45 +1,48 @@
 <template>
-  <div class="popup" v-keydown-esc="closeForm">
+  <div
+    class="popup"
+    v-keydown-esc="closeForm"
+    v-keydown-ctrl-s="btnOnClickSave"
+  >
     <div class="popup-form">
       <div class="popup-form__header">
         <h2>Chọn tài sản ghi tăng</h2>
         <div class="header__close" @click="closeForm">
           <div class="tooltip">
             <div class="icon-close-popup"></div>
-            <span class="tooltip__text">Đóng</span>
+            <span class="tooltip__text">Đóng (ESC)</span>
           </div>
         </div>
       </div>
       <div class="popup-form__body">
         <div class="content__toolbar">
           <div class="toolbar__filter">
-            <div class="txt-box--filter">
-              <div class="icon-search"></div>
-              <input
-                class="txt-box"
-                placeholder="Tìm kiếm theo mã, tên tài sản"
-                @keydown.enter="stateKeyDown()"
-                v-model.trim="filterAsset"
-              />
-            </div>
+            <input-text-filter-vue
+              placeholder="Tìm kiếm theo mã, tên tài sản"
+              v-model="filterAsset"
+              :sizeH="35"
+              :sizeW="300"
+              :isFocus="true"
+            />
           </div>
         </div>
         <base-table-vue
-          size="calc(100% - 76px)"
+          sizeH="calc(100% - 76px)"
           v-model="model"
           v-model:page="page"
           v-model:pageSize="pageSize"
           :totalPage="totalPage"
-          :hasContextMenu="false"
           :totalRecord="totalRecord"
-          :arrPage="arrPage"
+          :arrPage="
+            MISAResoure.Table.FixedAssetIncrement.FixedAsset.Pages.ArrPage
+          "
           :moreInfo="moreInfo"
           ref="tableFixedAsset"
-          :columns="columns"
-          :cells="cells"
+          :columns="MISAResoure.Table.FixedAssetIncrement.FixedAsset.Columns"
+          :cells="MISAResoure.Table.FixedAssetIncrement.FixedAsset.Cells"
           send="fixed_asset_id"
           :get="[
-            'fixed_asset_id', 
+            'fixed_asset_id',
             'fixed_asset_code',
             'fixed_asset_name',
             'department_name',
@@ -54,16 +57,22 @@
         />
       </div>
       <div class="popup-form__footer">
-        <button
-          class="btn btn--primary"
-          style="width: 120px"
-          @click="btnOnClickSave"
-        >
-          Đồng ý
-        </button>
-        <button class="btn" style="width: 120px" @click="closeForm">
-          Huỷ bỏ
-        </button>
+        <div class="tooltip">
+          <button
+            class="btn btn--primary"
+            style="width: 120px"
+            @click="btnOnClickSave"
+          >
+            Đồng ý
+          </button>
+          <span class="tooltip__text">Đồng ý (CTRL + S)</span>
+        </div>
+        <div class="tooltip">
+          <button class="btn" style="width: 120px" @click="closeForm">
+            Huỷ bỏ
+          </button>
+          <span class="tooltip__text">Huỷ bỏ (ESC)</span>
+        </div>
       </div>
     </div>
   </div>
@@ -98,42 +107,11 @@ export default {
       isShowDialog: false,
       filterAsset: "",
       page: 1,
-      pageSize: 20,
+      pageSize:
+        this.MISAResoure.Table.FixedAssetIncrement.FixedAsset.Pages.PageSize,
       totalPage: null,
       totalRecord: null,
-      arrPage: ["10", "20", "30", "50", "100"],
       moreInfo: [],
-      columns: [
-        { type: "checkbox", width: 39, isResizing: false },
-        { name: "STT", width: 52, isResizing: false, tooltip: "Số thứ tự" },
-        { name: "Mã tài sản", width: 172, isResizing: true },
-        { name: "Tên tài sản", width: 245, isResizing: true },
-        { name: "Bộ phận sử dụng", width: 287, isResizing: true },
-        { name: "Nguyên giá", width: 175, isResizing: false, align: "right" },
-        {
-          name: "HM/KH luỹ kế",
-          width: 175,
-          isResizing: false,
-          tooltip: "Hao mòn/Khấu hao luỹ kế",
-          align: "right",
-        },
-        {
-          name: "Giá trị còn lại",
-          width: 175,
-          isResizing: false,
-          align: "right",
-        },
-      ],
-      cells: [
-        { type: "checkbox" },
-        { type: "sort" },
-        { name: "fixed_asset_code" },
-        { name: "fixed_asset_name" },
-        { name: "department_name" },
-        { name: "cost", align: "right", type: "money" },
-        { name: "accumulated_depreciation", align: "right", type: "money" },
-        { name: "residual_value", align: "right", type: "money" },
-      ],
       fixedAssetIdFilter: {}, //danh sách chứa id có hoặc không trong danh sách tài sản
     };
   },
@@ -148,6 +126,22 @@ export default {
     this.getFixedAssets(api);
   },
   watch: {
+    /**
+     * @description: Lấy giá trị tìm kiếm
+     * @param: {any}
+     * Author: NNduc (14/05/2023)
+     */
+    filterAsset: function (nVal) {
+      this.page = 1;
+      const api = this.MISAResoure.API.FixedAsset.Increment(
+        nVal,
+        this.page,
+        this.pageSize
+      );
+      //lấy dữ liệu
+      this.getFixedAssets(api);
+    },
+
     /**
      * Lấy dữ liệu tương ứng khi thay đổi giá trị page size
      * Author NNduc (13/3/2023)
@@ -194,20 +188,6 @@ export default {
       const fixedAssets = this.$refs.tableFixedAsset.getAllData();
       this.$emit("getFixedAssets", fixedAssets);
     },
-    /**
-     * Hàm xử lý nhấn enter để tìm kiếm tài sản
-     * Author NNduc(13/3/2023)
-     */
-    stateKeyDown: function () {
-      this.page = 1;
-      const api = this.MISAResoure.API.FixedAsset.Increment(
-        this.filterAsset,
-        this.page,
-        this.pageSize
-      );
-      //lấy dữ liệu
-      this.getFixedAssets(api);
-    },
 
     /**
      * Hàm lấy tất cả tài sản theo bộ lọc
@@ -231,9 +211,18 @@ export default {
         })
         .catch((e) => {
           this.isLoadingProcess = false;
-          let title = this.MISAResoure.Dialog.Title.Warning + "</br>" + e;
-          let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-          this.showDialog(title, titleBtnPr);
+          console.log(e);
+          if (e.code == "ERR_NETWORK") {
+            this.showDialog(
+              this.MISAResoure.Dialog.Title.ErrorNetwork,
+              this.MISAResoure.Dialog.Button.Close
+            );
+          } else {
+            this.showDialog(
+              this.MISAResoure.Dialog.Title.Warning,
+              this.MISAResoure.Dialog.Button.Close
+            );
+          }
         });
     },
     /**

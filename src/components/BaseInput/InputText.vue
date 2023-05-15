@@ -5,10 +5,11 @@
   <input
     type="text"
     class="txt-box"
-    :placeholder="placehoder"
+    :placeholder="placeholder"
     v-model.trim="value"
-    :class="{ 'input-err': isValid, 'txt-box--disable': disable,'placehoder-normal':stylePlacehoder=='normal' }"
+    :class="{ 'input-err': isValid, 'txt-box--disable': disable,'placeholder-normal':styleplaceholder=='normal' }"
     @blur="onBlurInputValidate"
+    @input="$emit('update:modelValue', $event.target.value)"
     :disabled="disable"
     ref="input"
     :maxlength="maxLength"
@@ -22,18 +23,19 @@ export default {
   name: "InputText",
   props: {
     modelValue: String,
-    typeInput: String,
     lable: String,
-    placehoder: String,
-    stylePlacehoder:String,
+    placeholder: String,
+    styleplaceholder:String,
     require: Boolean,
     disable: Boolean,
     isFocus: Boolean,
+    sizeH:Number,
+    sizeW:Number,
     maxLength:{
       type:Number,
       default:524288
     },
-    name:Object
+    name:String
   },
   data() {
     return {
@@ -46,9 +48,6 @@ export default {
     this.value = this.modelValue;
   },
   watch: {
-    value: function (nVal) {
-      this.$emit("update:modelValue", nVal);
-    },
     modelValue: function (nVal) {
       this.value = nVal;
     },

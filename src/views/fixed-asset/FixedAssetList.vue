@@ -1,45 +1,57 @@
 <template>
-  <div class="content">
+  <div
+    class="content"
+    v-keydown-ctrl-shift-D="openFormDelete"
+    v-keydown-ctrl-1="openFormAdd"
+  >
     <div class="content__toolbar">
       <div class="toolbar__filter">
-        <div class="txt-box--filter">
-          <div class="icon-search"></div>
-          <input
-            class="txt-box"
-            placeholder="Tìm kiếm tài sản"
-            @keydown="stateKeyDown($event)"
-            v-model="filterAsset"
-            autofocus
-          />
-        </div>
+        <input-text-filter-vue
+          placeholder="Tìm kiếm tài sản"
+          ref="filterAsset"
+          name="filterAsset"
+          v-model="filterAsset"
+          :sizeH="35"
+          :sizeW="179"
+          :isFocus="true"
+          @onFocusInputListener="onFocusInputListener"
+        />
         <base-combobox-vue
-          placehoder="Loại tài sản"
+          placeholder="Loại tài sản"
+          ref="filterCat"
+          name="filterCat"
           :filter="true"
           :checkActive="true"
           :api="MISAResoure.API.Cat.Get"
           get="fixed_asset_category_name"
           v-model="filterCat"
-          stylePlacehoder="normal"
+          styleplaceholder="normal"
+          @onFocusInputListener="onFocusInputListener"
         />
         <base-combobox-vue
-          placehoder="Bộ phận sử dụng"
+          placeholder="Bộ phận sử dụng"
+          ref="filterDept"
+          name="filterDept"
           :filter="true"
           :checkActive="true"
           :api="MISAResoure.API.Dept.Get"
           get="department_name"
           v-model="filterDept"
-          stylePlacehoder="normal"
+          styleplaceholder="normal"
+          @onFocusInputListener="onFocusInputListener"
         />
       </div>
       <div class="toolbar__feature">
-        <button
-          class="btn btn--primary"
-          style="width: 110px; height: 36px"
-          @click="openForm(MISAEnum.FormState.Add)"
-        >
-          + Thêm tài sản
-        </button>
-
+        <div class="tooltip">
+          <button
+            class="btn btn--primary"
+            style="width: 110px; height: 36px"
+            @click="openForm(MISAEnum.FormState.Add)"
+          >
+            + Thêm tài sản
+          </button>
+          <span class="tooltip__text">Thêm tài sản (CTRL + 1)</span>
+        </div>
         <div class="tooltip">
           <button class="btn feature__btn" @click="exportExcel">
             <div class="icon-excel"></div>
@@ -51,7 +63,7 @@
           <button class="btn feature__btn" @click="removefixedAssets()">
             <div class="icon-bin--red"></div>
           </button>
-          <span class="tooltip__text">Xoá</span>
+          <span class="tooltip__text">Xoá (CTRL + SHIFT + D)</span>
         </div>
       </div>
     </div>
@@ -61,13 +73,13 @@
       v-model:pageSize="pageSize"
       :totalPage="totalPage"
       :totalRecord="totalRecord"
-      :arrPage="arrPage"
+      :arrPage="MISAResoure.Table.FixedAsset.Pages.ArrPage"
       :moreInfo="moreInfo"
       @openForm="openForm"
       ref="table"
       name="table"
-      :columns="columns"
-      :cells="cells"
+      :columns="MISAResoure.Table.FixedAsset.Columns"
+      :cells="MISAResoure.Table.FixedAsset.Cells"
       send="fixed_asset_id"
       :get="[
         'fixed_asset_id',
@@ -76,8 +88,12 @@
         'active',
         'fixed_asset_increment_code',
       ]"
-      :totalCellPaging="6"
-      :isShowButtonFeature="['Clone', 'Edit']"
+      :totalCellPaging="7"
+      :buttonFeatureTable="MISAResoure.Table.FixedAsset.ButtonFeatureTable"
+      :itemFeatureContextMenu="
+        MISAResoure.Table.FixedAsset.ItemFeatureContextMenu
+      "
+      @onFocusTableListener="onFocusInputListener"
     />
   </div>
 
@@ -97,7 +113,7 @@
   />
 
   <loading-process-vue v-if="isLoadingProcess" />
-  <base-toast-vue v-if="isShowToast" />
+  <base-toast-vue v-if="isShowToast" :isSuccess="isSuccessToast" />
 </template>
 
 <script>
@@ -114,59 +130,26 @@ export default {
   data() {
     return {
       isShowForm: false,
+      statusShowForm: true, //trạng thái form khi call api
       isLoadingProcess: false,
       model: [],
       fixedAsset: {}, //gán các giá trị của tài sản đề gửi sang form chi tiết
       fixedAssetId: null, //gán id tài sản lúc đầu, lần sau dùng nếu khác id -> call api
-      fixedAssetCode: null,
-      state: null,
+      fixedAssetCode: null, // mã tài sản lần đầu gọi api lấy tài sản
+      newFixedAssetCode: null, //mã tài sản mới cho tài sản
+      state: null, //trạng thái khi mở form
       isShowDialog: false,
       isShowToast: false,
+      isSuccessToast: true,
       filterDept: "",
       filterCat: "",
       filterAsset: "",
       page: 1,
-      pageSize: 20,
+      pageSize: this.MISAResoure.Table.FixedAsset.Pages.PageSize,
       totalPage: 1,
       totalRecord: 0,
-      arrPage: ["10", "20", "30", "50", "100"],
-      moreInfo: [0,0,0],
-      columns: [
-        { type: "checkbox", width: 39, isResizing: false },
-        { name: "STT", width: 52, isResizing: false, tooltip: "Số thứ tự" },
-        { name: "Mã tài sản", width: 101, isResizing: true },
-        { name: "Tên tài sản", width: 225, isResizing: true },
-        { name: "Loại tài sản", width: 235, isResizing: true },
-        { name: "Bộ phận sử dụng", width: 256, isResizing: true },
-        { name: "Số lượng", width: 90, isResizing: false, align: "right" },
-        { name: "Nguyên giá", width: 125, isResizing: false, align: "right" },
-        {
-          name: "HM/KH luỹ kế",
-          width: 127,
-          isResizing: false,
-          tooltip: "Hao mòn/Khấu hao luỹ kế",
-          align: "right",
-        },
-        {
-          name: "Giá trị còn lại",
-          width: 125,
-          isResizing: false,
-          align: "right",
-        },
-        { name: "Chức năng", width: 104, isResizing: false },
-      ],
-      cells: [
-        { type: "checkbox" },
-        { type: "sort" },
-        { name: "fixed_asset_code" },
-        { name: "fixed_asset_name" },
-        { name: "fixed_asset_category_name" },
-        { name: "department_name" },
-        { name: "quantity", align: "right", type: "money" },
-        { name: "cost", align: "right", type: "money" },
-        { name: "accumulated_depreciation", align: "right", type: "money" },
-        { name: "residual_value", align: "right", type: "money" },
-      ],
+      moreInfo: [0, 0, 0],
+      focusName: null,
     };
   },
   created() {
@@ -180,6 +163,24 @@ export default {
     this.getFixedAssets(api);
   },
   watch: {
+    /**
+     * @description: Lấy giá trị tìm kiếm
+     * @param: {any}
+     * Author: NNduc (14/05/2023)
+     */
+    filterAsset: function (nVal) {
+      this.page = 1;
+      const api = this.MISAResoure.API.FixedAsset.Get(
+        this.filterDept,
+        this.filterCat,
+        nVal,
+        this.page,
+        this.pageSize
+      );
+      //lấy dữ liệu
+      this.getFixedAssets(api);
+    },
+
     /**
      * Lấy dữ liệu tương ứng khi thay đổi giá trị page size
      * Author NNduc (13/3/2023)
@@ -250,49 +251,35 @@ export default {
   },
   methods: {
     /**
+     * @description:Sự kiện focus từng các component
+     * @param: {any}
+     * Author: NNduc (21/04/2023)
+     */
+    onFocusInputListener: function (name) {
+      this.focusName = name;
+    },
+    /**
      * Làm mới lại trang
      * Author NNduc(13/03/2023)
      */
-    loadPage: function () {
+    loadPage: function (isSuccess = true) {
       //Đóng dialog
       this.isShowDialog = false;
       //Đóng form
       this.isShowForm = false;
+      //Set trạng thái toast
+      this.isSuccessToast = isSuccess;
       //Show toast
       this.isShowToast = true;
-      //đặt lại các trường về mặc định
-      this.fixedAssetId = null;
-      this.page = 1;
-      this.filterAsset = "";
-      this.filterDept = "";
-      this.filterCat = "";
-      const api = this.MISAResoure.API.FixedAsset.Get(
-        this.filterDept,
-        this.filterCat,
-        this.filterAsset,
-        this.page,
-        this.pageSize
-      );
-      //lấy dữ liệu
-      this.getFixedAssets(api);
-      //làm mới style
-      this.$refs.table.refresh();
-
-      setTimeout(() => {
-        this.isShowToast = false;
-      }, 1500);
-    },
-
-    /**
-     * Hàm xử lý nhấn enter để tìm kiếm tài sản
-     * Author NNduc(13/3/2023)
-     */
-    stateKeyDown: function (evt) {
-      //lấy code key của sự kiện keydown
-      var charCode = evt.keyCode;
-      //nếu ấn enter sẽ lấy giá trị của text box
-      if (charCode == this.MISAEnum.KeySate.Enter) {
+      //nếu thành công reset lại table
+      if (isSuccess) {
+        //đặt lại các trường về mặc định
+        this.fixedAssetId = null;
+        this.newFixedAssetCode = null;
         this.page = 1;
+        this.filterAsset = "";
+        this.filterDept = "";
+        this.filterCat = "";
         const api = this.MISAResoure.API.FixedAsset.Get(
           this.filterDept,
           this.filterCat,
@@ -302,7 +289,14 @@ export default {
         );
         //lấy dữ liệu
         this.getFixedAssets(api);
+        //làm mới style
+        this.$refs.table.refresh();
+
+        this.$refs[this.focusName].autoFocusComplete();
       }
+      setTimeout(() => {
+        this.isShowToast = false;
+      }, 1500);
     },
 
     /**
@@ -327,9 +321,7 @@ export default {
         })
         .catch((e) => {
           this.isLoadingProcess = false;
-          console.log(e);
-          let errorCode = e.response.data.ErrorCode;
-          this.showDialogError(errorCode);
+          this.showDialogError(e);
         });
     },
 
@@ -338,14 +330,24 @@ export default {
      * @param: {any}
      * Author: NNduc (10/04/2023)
      */
-    showDialogError: function (errorCode, fixedAssets = []) {
-      var title = "";
-      if (errorCode == this.MISAEnum.ErrorCode.DeleteArised)
-        this.validateDelete(fixedAssets);
-      else {
-        title = this.MISAResoure.Dialog.Title.Warning;
-        let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-        this.showDialog(title, titleBtnPr);
+    showDialogError: function (e, fixedAssets = []) {
+      console.log(e);
+      //nếu không có kết nối mạng
+      if (e.code == "ERR_NETWORK") {
+        this.showDialog(
+          this.MISAResoure.Dialog.Title.ErrorNetwork,
+          this.MISAResoure.Dialog.Button.Close
+        );
+      } else {
+        let errorCode = e.response.data.ErrorCode;
+        if (errorCode == this.MISAEnum.ErrorCode.Exception) {
+          this.showDialog(
+            this.MISAResoure.Dialog.Title.Warning,
+            this.MISAResoure.Dialog.Button.Close
+          );
+        } else if (errorCode == this.MISAEnum.ErrorCode.DeleteArised)
+          this.validateDelete(fixedAssets);
+        else this.loadPage(false);
       }
     },
 
@@ -424,7 +426,7 @@ export default {
         choose == this.MISAResoure.Dialog.Button.Yes
       ) {
         this.isShowDialog = false;
-        this.$refs.table.autoFocusComplete();
+        this.$refs[this.focusName].autoFocusComplete();
       } else {
         //Xử lý dialog form xoá
         const fixedAssets = this.$refs.table.getAllData();
@@ -447,9 +449,7 @@ export default {
               })
               .catch((e) => {
                 this.isLoadingProcess = false;
-                console.log(e);
-                let errorCode = e.response.data.ErrorCode;
-                this.showDialogError(errorCode, fixedAssets);
+                this.showDialogError(e, fixedAssets);
               });
           } else {
             const api = this.MISAResoure.API.FixedAsset.Delete;
@@ -465,9 +465,7 @@ export default {
               })
               .catch((e) => {
                 this.isLoadingProcess = false;
-                console.log(e);
-                let errorCode = e.response.data.ErrorCode;
-                this.showDialogError(errorCode, fixedAssets);
+                this.showDialogError(e, fixedAssets);
               });
           }
         }
@@ -483,7 +481,7 @@ export default {
       var title = "";
       if (fixedAssets.length == 1) {
         const fixedAsset = fixedAssets[0];
-        if (fixedAsset.active)
+        if (fixedAsset.fixed_asset_increment_code)
           title =
             this.MISAResoure.Form.FixedAsset.Validate.ValidateDeleteIncrement(
               fixedAsset.fixed_asset_code,
@@ -491,7 +489,7 @@ export default {
             );
       } else {
         const fixedAsset = fixedAssets.filter(function (item) {
-          return item.active;
+          return item.fixed_asset_increment_code;
         });
         if (fixedAsset.length > 0)
           title =
@@ -503,6 +501,25 @@ export default {
         this.showDialog(title, this.MISAResoure.Dialog.Button.Close);
         return false;
       } else return true;
+    },
+    /**
+     * @description: Sự kiện khi ấn nút Ctrl 1 -> Mở form thêm
+     * @param: {any}
+     * Author: NNduc (14/05/2023)
+     */
+    openFormAdd: function () {
+      //nếu trong trạng thái mở form chi tiết
+      if (this.isShowForm) return;
+      this.openForm(this.MISAEnum.FormState.Add);
+    },
+    /**
+     * @description: Sự kiện khi ấn nút Ctrl Shift D -> Mở form xoá
+     * @param: {any}
+     * Author: NNduc (14/05/2023)
+     */
+    openFormDelete: function () {
+      if (this.isShowForm) return;
+      this.removefixedAssets();
     },
     /**
      * Hàm mở form
@@ -533,7 +550,11 @@ export default {
           this.fixedAsset.purchase_date = new Date();
           this.fixedAsset.production_year = new Date();
           //lấy mã code mới
-          this.fixedAsset.fixed_asset_code = await this.getNewFixedAssetCode();
+          //nếu mã code mới chưa được lấy -> gọi api
+          if (!this.newFixedAssetCode) {
+            this.newFixedAssetCode = await this.getNewFixedAssetCode();
+          }
+          this.fixedAsset.fixed_asset_code = this.newFixedAssetCode;
         } else if (state == this.MISAEnum.FormState.Edit) {
           //trạng thái sửa
           //nếu id khác id ban đầu thì lấy tài sản theo id mới, và gán mã code cũ (trong trường hợp trạng thái là nhân bản sẽ gán mã code mới)
@@ -551,7 +572,10 @@ export default {
             this.fixedAsset = await this.getFixedAssetId(id);
             this.fixedAssetCode = this.fixedAsset.fixed_asset_code;
           }
-          this.fixedAsset.fixed_asset_code = await this.getNewFixedAssetCode();
+          if (!this.newFixedAssetCode) {
+            this.newFixedAssetCode = await this.getNewFixedAssetCode();
+          }
+          this.fixedAsset.fixed_asset_code = this.newFixedAssetCode;
           this.titleForm = this.MISAResoure.Form.FixedAsset.Title.Clone;
         }
         this.fixedAsset.purchase_date = this.MISACommon.formatDate(
@@ -561,7 +585,7 @@ export default {
           this.fixedAsset.production_year
         );
         this.state = state;
-        this.isShowForm = true;
+        this.isShowForm = this.statusShowForm;
       } else {
         this.removefixedAssets();
       }
@@ -574,7 +598,7 @@ export default {
      */
     closeForm: function () {
       this.isShowForm = !this.isShowForm;
-      this.$refs.table.autoFocusComplete();
+      this.$refs[this.focusName].autoFocusComplete();
     },
 
     /**
@@ -583,39 +607,43 @@ export default {
      */
     getNewFixedAssetCode: async function () {
       var s = "";
+      //nếu trong trường hợp hiện dialog lỗi-> không gọi api
+      if (this.isShowDialog) return s;
+      this.isLoadingProcess = true;
       const api = this.MISAResoure.API.FixedAsset.NewFixedAssetCode;
       // const axios = await ;
-      this.isLoadingProcess = true;
       await this.axios
         .get(api)
         .then((response) => {
+          this.statusShowForm = true;
           this.isLoadingProcess = false;
           s = response.data;
         })
         .catch((e) => {
           this.isLoadingProcess = false;
-          let title = this.MISAResoure.Dialog.Title.Warning + "</br>" + e;
-          let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-          this.showDialog(title, titleBtnPr);
+          this.statusShowForm = false;
+          this.showDialogError(e);
         });
       return s;
     },
 
     getFixedAssetId: async function (fixedAssetId) {
       var fixedAsset = {};
-      const api = this.MISAResoure.API.FixedAsset.GetId(fixedAssetId);
+      //nếu trong trường hợp hiện dialog lỗi-> không gọi api
+      if (this.isShowDialog) return fixedAsset;
       this.isLoadingProcess = true;
+      const api = this.MISAResoure.API.FixedAsset.GetId(fixedAssetId);
       await this.axios
         .get(api)
         .then((response) => {
-          fixedAsset = response.data;
+          this.statusShowForm = true;
           this.isLoadingProcess = false;
+          fixedAsset = response.data;
         })
         .catch((e) => {
           this.isLoadingProcess = false;
-          let title = this.MISAResoure.Dialog.Title.Warning + "</br>" + e;
-          let titleBtnPr = this.MISAResoure.Dialog.Button.Close;
-          this.showDialog(title, titleBtnPr);
+          this.statusShowForm = false;
+          this.showDialogError(e);
         });
       return fixedAsset;
     },

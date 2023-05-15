@@ -27,10 +27,10 @@ export default {
     modelValue: Number,
     typeInput: String,
     lable: String,
-    placehoder: String,
+    placeholder: String,
     require: Boolean,
     disable: Boolean,
-    name:Object
+    name:String
   },
   data() {
     return {

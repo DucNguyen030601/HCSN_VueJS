@@ -189,8 +189,16 @@
     background-size: contain;
 }
 
-.icon-toast-sucess {
+.icon-toast-success {
     background: url('../../assets/icon/check.png');
+    width: 30px;
+    height: 30px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+.icon-toast-error{
+    background: url('../../assets/icon/error.png');
     width: 30px;
     height: 30px;
     background-repeat: no-repeat;

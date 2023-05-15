@@ -1,6 +1,6 @@
 .table-section {
     overflow: auto;
-    background-color: #ffffff; 
+    background-color: #ffffff;
 }
 
 .table-section::-webkit-scrollbar {
@@ -21,8 +21,15 @@ table {
     border-collapse: collapse;
     font-size: 14px;
     width: 100%;
-    outline: none;
+    outline: unset;
 }
+
+table .cut {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 
 thead {
     z-index: 1;
@@ -32,7 +39,21 @@ thead {
     font-size: 13px;
     font-weight: 700;
     color: #001031;
-    height: 38px;
+}
+
+thead th {
+    position: relative;
+}
+
+thead .column-resize {
+    width: 3px;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #dddddd;
+    cursor: col-resize;
+    visibility: hidden;
 }
 
 tfoot {
@@ -50,12 +71,17 @@ tbody tr {
     height: 39px;
 }
 
+.table-row--border-bottom tr:last-child {
+    border-bottom: 1px solid #dddddd;
+}
+
 thead th,
 tbody td,
 tfoot td {
     padding: 12px 0px 12px 16px;
     text-align: left;
 }
+
 
 /* tbody td:hover {
     overflow: visible;
@@ -94,6 +120,10 @@ tfoot tr {
     font-weight: bold;
 }
 
+thead tr th:hover .column-resize {
+    visibility: visible;
+}
+
 tbody tr:hover td {
     background-color: rgba(26, 164, 200, .2);
     cursor: pointer;
@@ -104,7 +134,7 @@ tbody tr:hover td {
 }
 
 .table-row-active {
-    background-color: #96c6ee;
+    background-color: #bcdcf7;
 }
 
 tbody tr:hover button {
@@ -143,10 +173,13 @@ td button {
     text-align: center;
     line-height: 20px;
     cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .table-footer__pagging .pagging__item--active {
     font-weight: bold;
-    background-color: #f5f5f5;
+    background-color: #ebebeb;
     border-radius: 20%;
 }
